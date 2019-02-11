@@ -28,11 +28,8 @@ proc weightedSum(X:seq[int]): int =
 
 # パターン -> 選択肢 -> 可能性
 # 振り直し(=アリス)
-# # 以下はダイスが増えて計算時間が増えるので保留
-# skills &= skillOfMeirin # 美鈴
-# skills &= skillOfIku # 衣玖
-# skills &= skillOfTenshi # 天子
-# skills &= skillOfKanako # 神奈子
+# # 以下はダイスが増えて計算時間が増えるので怖い(MaxDicesより大きくならない)
+# 美鈴 / 衣玖 / 天子 / 神奈子
 let notImplementedSkill = rerollFunc(false)
 let charasByLevel* = @[
   @[ # 2: System
