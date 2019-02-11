@@ -21,7 +21,7 @@ proc toCounts*(dices:seq[int]):seq[int] =
 
 # 最大で 1287 パターンしかない
 let dicePatternByLevel* = (proc (): seq[Table[int,int]] =
-  const maxCount = 8 # 8 ~ 13
+  const maxCount = 10 # 8 ~ 13
   result = newSeqWith(maxCount+1,initTable[int,int]())
   for i in 1..6:result[1][i] = 1
   for i in 2..maxCount:

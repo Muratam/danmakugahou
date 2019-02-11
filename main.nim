@@ -2,7 +2,6 @@ import sequtils,strutils,sugar,math,strformat,tables,algorithm,intSets
 import lib
 import gahoudata
 
-
 proc `*`(A:seq[Table[int,float]],B:Table[int,seq[Table[int,float]]]):seq[Table[int,float]] =
   result = @[]
   for aDsts in A:
@@ -171,12 +170,67 @@ proc skillOfShiki(src:int):seq[Table[int,float]] =
   result = @[]
   for p in patterns.items:
     result &= @[(p,1.0)].toTable()
-
 let reroll = rerollFunc(true)
 let anyChange = changeFunc(true,toSeq(1..6)).toAllPattern()
+let anyChange2 = changeFunc2(true,(toSeq(1..6),toSeq(1..6))).toAllPattern()
 proc skillOfTenshi(src:int):seq[Table[int,float]] =
   # ダイスを1個振り直した後一つを任意に変更
   reroll(src) * anyChange
+proc addDices(dices:seq[int],addCount:int) : Table[int,float]=
+  let denom = 6.power(addCount)
+  result = initTable[int,float]()
+  for k,v in dicePatternByLevel[addCount]:
+    let nextKeys = (dices & k.splitAsDecimal()).toKey()
+    result[nextKeys] = result.getOrDefault(nextKeys,0.0) + v / denom
+
+proc skillOfMeirin(src:int):seq[Table[int,float]] =
+  # 偶数-3+4
+  result = @[]
+  let dices = src.splitAsDecimal()
+  let targets = toSeq(0..<dices.len).filterIt(dices[it] mod 2 == 0)
+  if targets.len < 3 : return
+  var usedPatterns = initIntSet()
+  for i in 0..<dices.len:
+    if i notin targets : continue
+    for j in (i+1)..<dices.len:
+      if j notin targets : continue
+      for k in (j+1)..<dices.len:
+        if k notin targets: continue
+        let key = @[dices[i],dices[j],dices[k]].toKey()
+        if key in usedPatterns : continue
+        usedPatterns.incl key
+        var nexts = dices
+        nexts.delete(k)
+        nexts.delete(j)
+        nexts.delete(i)
+        result &= nexts.addDices(4)
+proc skillOfIku(src:int):seq[Table[int,float]] =
+  # 同じ出目-2+3
+  result = @[]
+  let dices = src.splitAsDecimal()
+  let counts = dices.toCounts()
+  let targets = toSeq(1..6).filterIt(counts[it] >= 2)
+  for t in targets:
+    var nexts = dices
+    for i in 0..<nexts.len:
+      if nexts[i] == t : nexts.delete(i)
+    for i in 0..<nexts.len:
+      if nexts[i] == t : nexts.delete(i)
+    result &= nexts.addDices(3)
+proc skillOfKomachi(src:int):seq[Table[int,float]] =
+  # 任意-1+2
+  result = @[]
+  let dices = src.splitAsDecimal()
+  for i in 0..<dices.len:
+    if i > 0 and dices[i-1] == dices[i] : continue
+    var nexts = dices
+    nexts.delete(i)
+    result &= nexts.addDices(2)
+
+proc skillOfKanako(src:int):seq[Table[int,float]] =
+  # ランダム+2 のち 任意2
+  return @[src.splitAsDecimal().addDices(2)] * anyChange2
+
 
 # パターン -> 選択肢 -> 可能性
 var skills : seq[int->seq[Table[int,float]]] = @[]
@@ -210,9 +264,12 @@ skills &= changeFunc1Or2(true,@[6.max(it + 2)],(@[it1 + 1],@[it2 + 1])) # 妹紅
 skills &= skillOfSuika # 萃香
 skills &= skillOfYukari # 紫
 skills &= skillOfPache # パチュリー
+skills &= skillOfMeirin # 美鈴
+skills &= skillOfIku # 衣玖
 skills &= skillOfTenshi # 天子
 skills &= skillOfShiki # 四季映姫
-# TODO: メイリン(偶数-3+4=+1) / 衣玖(同じ出目-2+3=+1) / 小町(任意-1+2=+1) / 神奈子(+2のち任意2変更) :: 13でも動作はしそう
+skills &= skillOfKanako # 神奈子
+# WARN: 10ダイスまで
 echo "SKILL LOADED"
 
 proc skillToGraph(skill:int->seq[Table[int,float]]) : Table[int,seq[Table[int,float]]] =
@@ -222,7 +279,8 @@ proc skillToGraph(skill:int->seq[Table[int,float]]) : Table[int,seq[Table[int,fl
     result[src] &= @[(src,1.0)].toTable() # この能力を使わなかった
     result[src] &= skill(src)
 
-let skillGraphs = identityGraph & skills.mapIt(skillToGraph(it))
+echo "LOADING SKILL GRAPH"
+let skillGraphs = identityGraph & skills.mapIt((stdout.write ".";stdout.flushFile();skillToGraph(it)))
 echo "SKILL GRAPH LOADED"
 # let reroll2 = skillGraphs[0] * skillGraphs[0]
 # let reroll3 = reroll2 * rerollGraph
@@ -261,5 +319,5 @@ for charas in charasByLevel:
   echo "LEVEL ",level
   echo means.mapIt(fmt"{99.min(it.int):2d}%").join(" ")
   echo alls.mapIt(fmt"{99.min(it.int):2d}%").join(" ")
-    # for chara in charas & allLevel:
-    #   echo chara
+  # for chara in charas & allLevel:
+  #   echo chara
