@@ -1,4 +1,6 @@
 import sequtils,algorithm,tables
+const diceMaxCount = 8 # 8 ~ 13
+
 
 proc power*(x,n:int): int =
   if n <= 1: return if n == 1: x else: 1
@@ -21,10 +23,9 @@ proc toCounts*(dices:seq[int]):seq[int] =
 
 # 最大で 1287 パターンしかない
 let dicePatternByLevel* = (proc (): seq[Table[int,int]] =
-  const maxCount = 10 # 8 ~ 13
-  result = newSeqWith(maxCount+1,initTable[int,int]())
+  result = newSeqWith(diceMaxCount+1,initTable[int,int]())
   for i in 1..6:result[1][i] = 1
-  for i in 2..maxCount:
+  for i in 2..diceMaxCount:
     for k,v in result[i-1].pairs:
       let ks = k.splitAsDecimal()
       for k2 in 1..6:
@@ -37,22 +38,3 @@ let allDicePattern* = (proc():Table[int,int] =
     for k,v in dices:
       result[k] = v
 )()
-
-# proc getIdentityGraph():Table[int,Table[int,float]] =
-#   result = initTable[int,Table[int,float]]()
-#   for src,_ in allDicePattern: result[src][src] = 1.0
-
-# proc getSrcGraph(src:int):Table[int,Table[int,float]] =
-#   result = initTable[int,Table[int,float]]()
-#   result[src][src] = 1.0
-
-# proc `*`(A:Table[int,float],B:Table[int,Table[int,float]]):Table[int,float] =
-#   result = initTable[int,float]()
-#   for mid,valA in A:
-#     if mid notin B : continue
-#     for dst,valB in B[mid]:
-#       result[dst] = result.getOrDefault(dst,0.0) + (valA * valB)
-
-# proc `*`(A,B:Table[int,Table[int,float]]):Table[int,Table[int,float]] =
-#   result = initTable[int,Table[int,float]]()
-#   for aSrc,aDsts in A: result[aSrc] = result[aSrc] * B
