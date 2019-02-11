@@ -3,26 +3,6 @@ import lib
 import gahoudata
 
 
-# 最大で 1287 パターンしかない
-let dicePatternByLevel = (proc (): seq[Table[int,int]] =
-  const maxCount = 8
-  result = newSeqWith(maxCount+1,initTable[int,int]())
-  for i in 1..6:result[1][i] = 1
-  for i in 2..maxCount:
-    for k,v in result[i-1].pairs:
-      let ks = k.splitAsDecimal()
-      for k2 in 1..6:
-        let nextKey = (ks & k2).toKey()
-        result[i][nextKey] = result[i].getOrDefault(nextKey,0) + v
-)()
-# 456 -> 24 パターン
-let allDicePattern = (proc():Table[int,int] =
-  result = initTable[int,int]()
-  for dices in dicePatternByLevel:
-    for k,v in dices:
-      result[k] = v
-)()
-
 # proc getIdentityGraph():Table[int,Table[int,float]] =
 #   result = initTable[int,Table[int,float]]()
 #   for src,_ in allDicePattern: result[src][src] = 1.0
@@ -31,20 +11,37 @@ let allDicePattern = (proc():Table[int,int] =
 #   result = initTable[int,Table[int,float]]()
 #   result[src][src] = 1.0
 
-proc `*`(A:Table[int,float],B:Table[int,Table[int,float]]):Table[int,float] =
-  result = initTable[int,float]()
-  for mid,valA in A:
-    if mid notin B : continue
-    for dst,valB in B[mid]:
-      result[dst] = result.getOrDefault(dst,0.0) + (valA * valB)
+# proc `*`(A:Table[int,float],B:Table[int,Table[int,float]]):Table[int,float] =
+#   result = initTable[int,float]()
+#   for mid,valA in A:
+#     if mid notin B : continue
+#     for dst,valB in B[mid]:
+#       result[dst] = result.getOrDefault(dst,0.0) + (valA * valB)
 
+# proc `*`(A,B:Table[int,Table[int,float]]):Table[int,Table[int,float]] =
+#   result = initTable[int,Table[int,float]]()
+#   for aSrc,aDsts in A: result[aSrc] = result[aSrc] * B
 
-proc `*`(A,B:Table[int,Table[int,float]]):Table[int,Table[int,float]] =
-  result = initTable[int,Table[int,float]]()
-  for aSrc,aDsts in A: result[aSrc] = result[aSrc] * B
+proc `*`(A,B:Table[int,seq[Table[int,float]]]):Table[int,seq[Table[int,float]]] =
+  result = initTable[int,seq[Table[int,float]]]()
+  for aSrc,aDstss in A: # 3000
+    result[aSrc] = @[]
+    for aDsts in aDstss: # 6(選択肢)
+      for mid,aVal in aDsts: # 6(次の変更先)
+        if mid notin B : continue
+        var nextsBase = aDsts
+        nextsBase.del mid
+        for bDsts in B[mid]: #
+          var nexts = nextsBase
+          for dst,bVal in bDsts:
+            nexts[dst] = nexts.getOrDefault(dst,0.0) + aVal * bVal
+          result[aSrc] &= nexts
 
-
-# 456 -> [{456:1.0},{455:0.3,...},...]
+let identityGraph = (proc ():Table[int,seq[Table[int,float]]] =
+  result = initTable[int,seq[Table[int,float]]]()
+  for src,_ in allDicePattern: result[src] = @[@[(src,1.0)].toTable()]
+)()
+# 456 -> [{456:1.0},{455:0.3,...},...] # (最大6)パターン -> 選択肢 -> 可能性
 let rerollGraph = (proc ():Table[int,seq[Table[int,float]]] =
   result = initTable[int,seq[Table[int,float]]]()
   for src,_ in allDicePattern:
@@ -52,6 +49,7 @@ let rerollGraph = (proc ():Table[int,seq[Table[int,float]]] =
     result[src] &= @[(src,1.0)].toTable() # 振りなおさない
     let srcArrBase = src.splitAsDecimal()
     for i in 0..<srcArrBase.len:
+      if i > 0 and srcArrBase[i-1] == srcArrBase[i] : continue
       var nexts = initTable[int,float]()
       var dstArr = srcArrBase
       for d in 1..6:
@@ -66,19 +64,11 @@ proc rollDice(level:int):Table[int,float] =
   result = initTable[int,float]()
   for k,v in dicePatternByLevel[level]: result[k] = v.float / denom
 
-proc checkDice(self:Chara,k:int): bool = self.check(k.splitAsDecimal.toCounts())
-
-proc getPercent(self:Chara):float=
-  for k,v in rollDice(self.level):
-    if self.checkDice(k) : result += v
-  result *= 100.0
-
-proc getPercentWithReroll(self:Chara):float=
+proc reduce(self:Chara,graph:Table[int,seq[Table[int,float]]]) : float=
   let rolled = rollDice(self.level)
-  var dsts = newTable[int,float]()
   for k,v in rolled:
     var p = 0.0
-    for vs in rerollGraph[k]:
+    for vs in graph[k]:
       var p2 = 0.0
       for k2,v2 in vs:
         if self.checkDice(k2): p2 += v * v2
@@ -86,8 +76,24 @@ proc getPercentWithReroll(self:Chara):float=
     result += p
   result *= 100.0
 
+let reroll2 = rerollGraph * rerollGraph
+# let reroll3 = reroll2 * rerollGraph
+
+
+proc getPercent(self:Chara):float = self.reduce(identityGraph)
+proc getPercentWithReroll(self:Chara):float = self.reduce(rerollGraph)
+proc getPercentWithReroll2(self:Chara):float = self.reduce(reroll2)
+# proc getPercentWithReroll3(self:Chara):float = self.reduce(reroll3)
+
+
 proc `$`*(self:Chara):string =
-  return fmt"LV{self.level} : {self.getPercent():.2f}% :{self.getPercentWithReroll():.2f} : {self.name}"
+  return fmt"""
+  LV{self.level} :
+  {self.getPercent():.2f}% :
+  {self.getPercentWithReroll():.2f}% :
+  {self.getPercentWithReroll2():.2f}% :
+  {self.getPercentWithReroll3():.2f}% :
+  {self.name}""".replace("\n","")
 
 
 for charas in charasByLevel:
@@ -95,4 +101,3 @@ for charas in charasByLevel:
   let allLevel = newChara(fmt"LV{level}のいずれか",level,x => charas.anyIt(it.check(x)))
   for chara in charas: echo chara
   echo allLevel
-  break

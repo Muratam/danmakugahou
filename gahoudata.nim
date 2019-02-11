@@ -1,13 +1,21 @@
-import sequtils,strutils,sugar,math
+import sequtils,strutils,sugar,math,intsets,tables,algorithm
+import lib
 type Chara* = ref object
   name*:string
   level*:int
   check*: seq[int] -> bool
+  okPattern: IntSet
+proc checkDice*(self:Chara,k:int):bool = k in self.okPattern # WARN sort
+
 proc newChara*(name:string,level:int,check:seq[int]->bool) :Chara =
   new(result)
   result.name = name
   result.level = level
   result.check = check
+  result.okPattern = initIntSet()
+  for k,_ in allDicePattern:
+    if not check(k.splitAsDecimal.toCounts()) : continue
+    result.okPattern.incl k
 
 proc weightedSum(X:seq[int]): int =
   for i,x in X: result += i * x
