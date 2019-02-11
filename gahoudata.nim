@@ -6,12 +6,13 @@ type Chara* = ref object
   level*:int
   check*: seq[int] -> bool
   okPattern: IntSet
-  skill*:int->seq[Table[int,float]]
-  skillGraph*:Table[int,seq[Table[int,float]]]
+  skill*:int->Dests
+  skillGraph*:Graph
 proc checkDice*(self:Chara,k:int):bool = k in self.okPattern # WARN
 
-proc newChara*(name:string,level:int,check:seq[int]->bool,skill:int->seq[Table[int,float]]) :Chara =
+proc newChara*(name:string,level:int,check:seq[int]->bool,skill:int->Dests) :Chara =
   new(result)
+  stderr.writeline "LOADING ",name
   result.name = name
   result.level = level
   result.check = check
@@ -27,11 +28,8 @@ proc weightedSum(X:seq[int]): int =
 
 # パターン -> 選択肢 -> 可能性
 # 振り直し(=アリス)
-# # 以下はダイスが増えて計算時間が増えるので保留
-# skills &= skillOfMeirin # 美鈴
-# skills &= skillOfIku # 衣玖
-# skills &= skillOfTenshi # 天子
-# skills &= skillOfKanako # 神奈子
+# # 以下はダイスが増えて計算時間が増えるので怖い(MaxDicesより大きくならない)
+# 美鈴 / 衣玖 / 天子 / 神奈子
 let notImplementedSkill = rerollFunc(false)
 let charasByLevel* = @[
   @[ # 2: System
@@ -63,7 +61,7 @@ let charasByLevel* = @[
     newChara("霊夢", 5, x => x[1] == 0 and x[2] == 0 and x[3] == 0,changeFunc(true,@[7 - it])),
   ], @[ # 6
     newChara("レミリア", 6, x => x.weightedSum() <= 12,changeFunc(true,toSeq(1..<it))),
-    newChara("衣玖", 6, x => x.filterIt(it >= 1).len >= 6,notImplementedSkill),
+    newChara("衣玖", 6, x => x.filterIt(it >= 1).len >= 6,skillOfIku),
     newChara("永琳", 6, x => x.max() >= 5,changeFunc2(true,(@[it1 + 1],@[it2 - 1]))),
     newChara("幽香", 6, x => x.weightedSum() >= 30,changeFunc(true,toSeq(it+1..6))),
     newChara("幽々子", 6, x => x[2] + x[4] + x[6] >= 6,changeFunc2(true,(@[4],@[4]))),
@@ -71,14 +69,14 @@ let charasByLevel* = @[
   ], @[ # 7
     newChara("フランドール", 7, x => x[1] + x[2] >= 7,changeFunc1Or2(true,@[1.max(it - 2)],(@[it1 - 1],@[it2 - 1]))),
     newChara("輝夜", 7, x => x.max() >= 6,changeFunc2(true,(@[1],@[6]))),
-    newChara("小町", 7, x => x.weightedSum() == 13,notImplementedSkill),
-    newChara("天子", 7, x => x[1] == 0 and x[2] == 0 and x[3] == 0 and x[4] == 0,notImplementedSkill),
+    newChara("小町", 7, x => x.weightedSum() == 13,skillOfKomachi),
+    newChara("天子", 7, x => x[1] == 0 and x[2] == 0 and x[3] == 0 and x[4] == 0,skillOfTenshi),
     newChara("妹紅", 7, x => x.weightedSum() >= 38,changeFunc1Or2(true,@[6.max(it + 2)],(@[it1 + 1],@[it2 + 1]))),
   ], @[ # 8
     newChara("萃香", 8, x => x.max() >= 7,skillOfSuika),
     newChara("四季映姫", 8, x => x.weightedSum() <= 11,skillOfShiki),
     newChara("紫", 8, x => x[2] == 0 and x[3] == 0 and x[4] == 0 and x[5] == 0,skillOfYukari),
-    newChara("神奈子", 8, x => x.weightedSum() >= 46,notImplementedSkill),
+    newChara("神奈子", 8, x => x.weightedSum() >= 46,skillOfKanako),
   ]
 ]
 

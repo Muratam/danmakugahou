@@ -1,6 +1,12 @@
 import sequtils,algorithm,tables
-const diceMaxCount = 8 # 8 ~ 13
-
+const diceMaxCount* = 8 # 8 ~ 13
+# 0 <-> {1}
+# 1 <-> {2}
+# 5 <-> {6}
+# 6 <-> {11}
+#
+proc prettyPrint*[T](A:seq[T]) =
+  for a in A: echo a
 
 proc power*(x,n:int): int =
   if n <= 1: return if n == 1: x else: 1
