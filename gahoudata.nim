@@ -6,11 +6,11 @@ type Chara* = ref object
   level*:int
   check*: seq[int] -> bool
   okPattern: IntSet
-  skill*:int->seq[Table[int,float]]
-  skillGraph*:Table[int,seq[Table[int,float]]]
+  skill*:int->Dests
+  skillGraph*:Graph
 proc checkDice*(self:Chara,k:int):bool = k in self.okPattern # WARN
 
-proc newChara*(name:string,level:int,check:seq[int]->bool,skill:int->seq[Table[int,float]]) :Chara =
+proc newChara*(name:string,level:int,check:seq[int]->bool,skill:int->Dests) :Chara =
   new(result)
   result.name = name
   result.level = level
@@ -72,7 +72,7 @@ let charasByLevel* = @[
     newChara("フランドール", 7, x => x[1] + x[2] >= 7,changeFunc1Or2(true,@[1.max(it - 2)],(@[it1 - 1],@[it2 - 1]))),
     newChara("輝夜", 7, x => x.max() >= 6,changeFunc2(true,(@[1],@[6]))),
     newChara("小町", 7, x => x.weightedSum() == 13,notImplementedSkill),
-    newChara("天子", 7, x => x[1] == 0 and x[2] == 0 and x[3] == 0 and x[4] == 0,notImplementedSkill),
+    newChara("天子", 7, x => x[1] == 0 and x[2] == 0 and x[3] == 0 and x[4] == 0,skillOfTenshi),
     newChara("妹紅", 7, x => x.weightedSum() >= 38,changeFunc1Or2(true,@[6.max(it + 2)],(@[it1 + 1],@[it2 + 1]))),
   ], @[ # 8
     newChara("萃香", 8, x => x.max() >= 7,skillOfSuika),
