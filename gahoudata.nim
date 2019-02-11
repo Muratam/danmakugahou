@@ -6,7 +6,8 @@ type Chara* = ref object
   level*:int
   check*: seq[int] -> bool
   okPattern: IntSet
-  skill*:Table[int,seq[Table[int,float]]]
+  skill*:int->seq[Table[int,float]]
+  skillGraph*:Table[int,seq[Table[int,float]]]
 proc checkDice*(self:Chara,k:int):bool = k in self.okPattern # WARN
 
 proc newChara*(name:string,level:int,check:seq[int]->bool,skill:int->seq[Table[int,float]]) :Chara =
@@ -14,7 +15,8 @@ proc newChara*(name:string,level:int,check:seq[int]->bool,skill:int->seq[Table[i
   result.name = name
   result.level = level
   result.check = check
-  result.skill = skill.skillToGraph()
+  result.skill = skill
+  result.skillGraph = skill.skillToGraph()
   result.okPattern = initIntSet()
   for k,_ in allDicePattern:
     if not check(k.splitAsDecimal.toCounts()) : continue
@@ -32,7 +34,10 @@ proc weightedSum(X:seq[int]): int =
 # skills &= skillOfKanako # 神奈子
 let notImplementedSkill = rerollFunc(false)
 let charasByLevel* = @[
-  @[ # 3
+  @[ # 2: System
+    newChara("No Skill",2,x=>true,rerollFunc(false)),
+    newChara("Reroll",2,x=>true,rerollFunc(true)),
+  ],@[ # 3
     newChara("チルノ", 3, x => x.weightedSum() == 9,changeFunc2(it1 >= 4 and it2 >= 4,(@[it1 - 1],@[it2 - 1]))),
     newChara("ミスティア", 3, x => x.weightedSum() == 12,changeFunc2(it1 <= 3 and it2 <= 3,(@[it1 + 1],@[it2 + 1]))),
     newChara("リグル", 3, x => x[4] == 0 and x[6] == 0,rerollFunc(it mod 2 == 1)),
@@ -47,7 +52,7 @@ let charasByLevel* = @[
     newChara("メルラン", 4, x => x[1] == 0 and x[2] == 0,changeFunc(true,@[it + 1])),
     newChara("リリカ", 4, x => x[3] == 0 and x[4] == 0,changeFunc(true,toSeq(1..6).filterIt(dices.toCounts[it] == 1))),
     newChara("ルナサ", 4, x => x[5] == 0 and x[6] == 0,changeFunc(true,@[it - 1])),
-    newChara("美鈴", 4, x => (x[1] + x[3] + x[5] >= 4) or (x[2] + x[4] + x[6] >= 4),notImplementedSkill),
+    newChara("美鈴", 4, x => (x[1] + x[3] + x[5] >= 4) or (x[2] + x[4] + x[6] >= 4),skillOfMeirin),
   ], @[ # 5
     newChara("イナバ", 5, x => x[2] == 0 and x[4] == 0 and x[6] == 0,changeFunc(it mod 2 == 1,@[2,4,6])),
     newChara("パチュリー", 5, x => x.filterIt(it >= 1).len >= 5,skillOfPache),
@@ -76,5 +81,6 @@ let charasByLevel* = @[
     newChara("神奈子", 8, x => x.weightedSum() >= 46,notImplementedSkill),
   ]
 ]
+
 var allCharas* : seq[Chara] = @[]
 for charas in charasByLevel: allCharas &= charas
