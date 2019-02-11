@@ -37,3 +37,22 @@ let allDicePattern* = (proc():Table[int,int] =
     for k,v in dices:
       result[k] = v
 )()
+
+# proc getIdentityGraph():Table[int,Table[int,float]] =
+#   result = initTable[int,Table[int,float]]()
+#   for src,_ in allDicePattern: result[src][src] = 1.0
+
+# proc getSrcGraph(src:int):Table[int,Table[int,float]] =
+#   result = initTable[int,Table[int,float]]()
+#   result[src][src] = 1.0
+
+# proc `*`(A:Table[int,float],B:Table[int,Table[int,float]]):Table[int,float] =
+#   result = initTable[int,float]()
+#   for mid,valA in A:
+#     if mid notin B : continue
+#     for dst,valB in B[mid]:
+#       result[dst] = result.getOrDefault(dst,0.0) + (valA * valB)
+
+# proc `*`(A,B:Table[int,Table[int,float]]):Table[int,Table[int,float]] =
+#   result = initTable[int,Table[int,float]]()
+#   for aSrc,aDsts in A: result[aSrc] = result[aSrc] * B

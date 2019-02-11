@@ -5,7 +5,7 @@ type Chara* = ref object
   level*:int
   check*: seq[int] -> bool
   okPattern: IntSet
-proc checkDice*(self:Chara,k:int):bool = k in self.okPattern # WARN sort
+proc checkDice*(self:Chara,k:int):bool = k in self.okPattern # WARN
 
 proc newChara*(name:string,level:int,check:seq[int]->bool) :Chara =
   new(result)
