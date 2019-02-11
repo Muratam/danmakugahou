@@ -53,7 +53,7 @@ template rerollFunc*(filter) : int -> seq[Table[int,float]] =
         result &= nexts
     impl
 proc change*(dices:seq[int],i,d:int) : seq[int] =
-  if (d < 0 and d != deletedNumber) or d > 6 : return @[]
+  if (d <= 0 and d != deletedNumber) or d > 6 : return @[]
   result = dices
   if d == deletedNumber : result.delete(i) #削除
   else: result[i] = d
