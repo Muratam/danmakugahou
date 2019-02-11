@@ -30,7 +30,7 @@ proc weightedSum(X:seq[int]): int =
 # 振り直し(=アリス)
 # # 以下はダイスが増えて計算時間が増えるので怖い(MaxDicesより大きくならない)
 # 美鈴 / 衣玖 / 天子 / 神奈子
-let notImplementedSkill = rerollFunc(false)
+let notImplementedSkill* = rerollFunc(false)
 let charasByLevel* = @[
   @[ # 2: System
     newChara("No Skill",2,x=>true,notImplementedSkill),

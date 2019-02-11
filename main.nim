@@ -14,18 +14,33 @@ proc rollDiceGraph(level:int):Table[int,float] =
   for k,v in dicePatternByLevel[level]: result[k] = v.float / denom
 proc reduceGraph(self:Chara,graph:Graph) : float=
   let rolled = rollDiceGraph(self.level)
-  for k,v in rolled:
-    var p = 0.0
+  proc calc(k:int):float =
+    # 各開始ロールに対して確率が最大になるように遷移を選択したい
     for vs in graph[k]:
-      var p2 = 0.0
-      for k2,v2 in vs:
-        if self.checkDice(k2): p2 += v * v2
-      p = p.max(p2)
-    result += p
+      var p = 0.0
+      for k2,v2 in vs: # その選択をした場合の期待値
+        if self.checkDice(k2): p += v2
+      result = result.max(p)
+      if abs(result - 1.0) < 1e-8 : return 1.0 # 確定
+  for k,v in rolled: result += calc(k) * v
   result *= 100.0
 
+let nopGraph = notImplementedSkill.skillToGraph()
 proc reduceGraphs(self:Chara,graphs:seq[Graph]) : float =
-  0.0
+  if graphs.len == 0 : return self.reduceGraph(nopGraph)
+  if graphs.len == 1 : return self.reduceGraph(graphs[0])
+  if graphs.len >= 3 : quit "NOT IMPLEMENTED"
+  let rolled = rollDiceGraph(self.level)
+  proc calc(k:int) : float =
+    prettyPrint graphs[0][k]
+    prettyPrint graphs[1][k]
+  for k,v in rolled: result += calc(k) * v
+  result *= 100.0
+let arith = charasByLevel[2][0]
+let cirno = charasByLevel[1][0]
+echo arith.reduceGraphs(@[arith.skillGraph,cirno.skillGraph])
+if true : quit 0
+
 
 proc rollDice(level:int): int =
   var random = initRand((cpuTime() * 1000000).int)
