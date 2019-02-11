@@ -5,7 +5,7 @@ type Chara* = ref object
   name*:string
   level*:int
   check*: seq[int] -> bool
-  okPattern: IntSet
+  okPattern*: IntSet
   skill*:int->Dests
   skillGraph*:Graph
 proc checkDice*(self:Chara,k:int):bool = k in self.okPattern # WARN
