@@ -30,7 +30,7 @@ proc skillToGraph*(skill:int->seq[Table[int,float]]) : Table[int,seq[Table[int,f
     result[src] &= @[(src,1.0)].toTable() # この能力を使わなかった
     result[src] &= skill(src)
 
-const deletedNumber = -1000
+const deletedNumber* = -1000
 proc toAllPattern*(fun:int->seq[Table[int,float]]) : Table[int,seq[Table[int,float]]] =
   result = initTable[int,seq[Table[int,float]]]()
   for src,_ in allDicePattern: result[src] = fun(src)

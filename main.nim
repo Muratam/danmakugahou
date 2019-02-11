@@ -32,5 +32,5 @@ for charas in charasByLevel:
     means &= charas.mapIt(it.reduce(skills.skill).int).sum() / (charas.len)
     alls &= allLevel.reduce(skills.skill)
   echo "LEVEL ",level
-  echo means.mapIt(fmt"{99.min(it.int):2d}%").join(" ")
-  echo alls.mapIt(fmt"{99.min(it.int):2d}%").join(" ")
+  for it in 0..<allCharas.len:
+    echo fmt"{99.min(means[it].int):2d}%","\t",fmt"{99.min(alls[it].int):2d}%","\t",allCharas[it].name

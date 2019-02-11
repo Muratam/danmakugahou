@@ -38,7 +38,7 @@ let charasByLevel* = @[
     newChara("リグル", 3, x => x[4] == 0 and x[6] == 0,rerollFunc(it mod 2 == 1)),
     newChara("ルーミア", 3, x => x.weightedSum() >= 13,rerollFunc(it <= 4)),
     newChara("レティ", 3, x => x.weightedSum() <= 8,rerollFunc(it >= 3)),
-    newChara("慧音", 3, x => x[1] == 0 and x[3] == 0 and x[5] == 0,changeFunc(true,@[-1])),
+    newChara("慧音", 3, x => x[1] == 0 and x[3] == 0 and x[5] == 0,changeFunc(true,@[deletedNumber])),
     newChara("橙", 3, x => x.anyIt(it >= 2),rerollFunc(it mod 2 == 0)),
   ], @[  # 4
     newChara("アリス", 4, x => x.allIt(it < 2),rerollFunc(true)),
@@ -54,7 +54,7 @@ let charasByLevel* = @[
     newChara("咲夜", 5, x => x.weightedSum() <= 12,changeFunc(true,@[dices.max()])),
     newChara("早苗", 5, x => x.max() >= 4,changeFunc2(it1 == 5 and it2 == 5,(toSeq(1..6),toSeq(1..6)))),
     newChara("魔理沙", 5, x => x.weightedSum() >= 23,changeFunc(true,@[dices.min()])),
-    newChara("妖夢", 5, x => x[1] + x[2] + x[3] >= 5,changeFunc(it mod 2 == 1,@[if it == 0 : -1 else:it div 2])),
+    newChara("妖夢", 5, x => x[1] + x[2] + x[3] >= 5,changeFunc(it mod 2 == 1,@[if it == 0 : deletedNumber else:it div 2])),
     newChara("霊夢", 5, x => x[1] == 0 and x[2] == 0 and x[3] == 0,changeFunc(true,@[7 - it])),
   ], @[ # 6
     newChara("レミリア", 6, x => x.weightedSum() <= 12,changeFunc(true,toSeq(1..<it))),
