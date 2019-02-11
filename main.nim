@@ -2,6 +2,7 @@ import sequtils,strutils,sugar,math,strformat,tables,algorithm,intSets,random,ti
 import lib
 import skill
 import gahoudata
+# import nimprof
 template `max=`*(x,y) = x = max(x,y)
 template `min=`*(x,y) = x = min(x,y)
 template stopwatch(body) = (let t1 = cpuTime();body;stderr.writeLine "TIME:",(cpuTime() - t1) * 1000,"ms")
@@ -57,28 +58,35 @@ proc reduceGraphs(self:Chara,graphs:seq[Graph]) : float =
     if p in self.okPattern :
       dp[p][0] = 1.0
       P[0] &= p
-  # type Dest* = Table[int,float]
-  # type Dests* = seq[Dest]
-  # type Graph* = Table[int,Dests]
   const eps = 1e-8
   for i in 0 ..< ^n: # BitDPで確定させていく
     for gi in 0..<n: # gi番目を埋めて(i or ^gi)にする
-      # i == 0b01 && gi == 1
       if (i and ^gi) > 0 : continue
-      let revGraph = revGraphs[gi]
       for src in P[i]: # 確定済みの地点から伸ばす
-        if src notin revGraph : continue
-        for D in revGraph[src]:
-          # dst val others
+        if src notin revGraphs[gi] : continue
+        for D in revGraphs[gi][src]: # dst val others
           var per = dp[src][i] * D.val
           for otherK,otherV in D.others:
             per += dp[otherK][i] * otherV
+          # 0 % だった
           if per <= eps : continue
+          # すでに自分を使わなくてもよりよい解があるなら探索候補に入れる必要はない
+          if per < dp[D.dst].max() - eps : continue
           dp[D.dst][i or ^gi] .max= per
           P[i or ^gi] &= D.dst
+  let answers = toSeq(dp.pairs).mapIt((k:it[0],v:it[1].max())).toTable()
+  let rolled = rollDiceGraph(self.level)
+  for k,v in rolled: result += answers[k] * v
+  result *= 100.0
+
+
 let arith = charasByLevel[2][0]
 let cirno = charasByLevel[1][0]
-echo arith.reduceGraphs(@[arith.skillGraph,cirno.skillGraph])
+for i in 0..4:
+  let skills = charasByLevel[2].mapIt(it.skillGraph)[0..i]
+  echo skills.len
+  stopWatch:
+    echo arith.reduceGraphs(skills)
 if true : quit 0
 
 
