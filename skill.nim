@@ -223,9 +223,13 @@ proc skillOfIku*(src:int):Dests =
   for t in targets:
     var nexts = dices
     for i in 0..<nexts.len:
-      if nexts[i] == t : nexts.delete(i)
+      if nexts[i] == t :
+        nexts.delete(i)
+        break
     for i in 0..<nexts.len:
-      if nexts[i] == t : nexts.delete(i)
+      if nexts[i] == t :
+        nexts.delete(i)
+        break
     result &= nexts.addDices(3)
 proc skillOfKomachi*(src:int):Dests =
   # 任意-1+2

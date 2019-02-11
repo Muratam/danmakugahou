@@ -44,16 +44,23 @@ proc getRevGraph(graph:Graph): RevGraph =
         result[d] &= (src,val,revDest)
 
 let nopGraph = notImplementedSkill.skillToGraph()
-proc reduceGraphs(self:Chara,graphs:seq[Graph]) : float =
-  if graphs.len == 0 : return self.reduceGraph(nopGraph)
-  if graphs.len == 1 : return self.reduceGraph(graphs[0])
-  let allPattern = toSeq(allDicePattern.keys)
-  let n = graphs.len
+proc reduceGraphs(self:Chara,charas:seq[Chara]) : float =
+  let n = charas.len
+  if n == 0 : return self.reduceGraph(nopGraph)
+  if n == 1 : return self.reduceGraph(charas[0].skillGraph)
   var dp = newTable[int,seq[float]]()
-  let revGraphs = graphs.mapIt(it.getRevGraph())
-  var P = newSeqWith(^n,newSeq[int]()) # 使ったスキルの数とそれに対応する０以外の頂点
+  let revGraphs = charas.mapIt(it.skillGraph.getRevGraph())
+  let maxDiff = charas.mapIt(it.diceDiff.max(0)).sum()
+  let minDiff = charas.mapIt(it.diceDiff.min(0)).sum()
+  # ダイスの増減分しか探索しなくてよい
+  let mayPattern = (proc():seq[int] =
+    result = @[]
+    for dices in dicePatternByLevel[self.level + minDiff..self.level+maxDiff]:
+      for k in dices.keys: result &= k
+  )()
   # 何も使わなくても行ける場所
-  for p in allPattern:
+  var P = newSeqWith(^n,newSeq[int]()) # 使ったスキルの数とそれに対応する０以外の頂点
+  for p in mayPattern:
     dp[p] = newSeq[float](^n)
     if p in self.okPattern :
       dp[p][0] = 1.0
@@ -65,6 +72,7 @@ proc reduceGraphs(self:Chara,graphs:seq[Graph]) : float =
       for src in P[i]: # 確定済みの地点から伸ばす
         if src notin revGraphs[gi] : continue
         for D in revGraphs[gi][src]: # dst val others
+          if D.dst notin dp : continue # 増やす / 減らす系が対象外の場所を見ることがあるので
           var per = dp[src][i] * D.val
           for otherK,otherV in D.others:
             per += dp[otherK][i] * otherV
@@ -82,11 +90,11 @@ proc reduceGraphs(self:Chara,graphs:seq[Graph]) : float =
 
 let arith = charasByLevel[2][0]
 let cirno = charasByLevel[1][0]
-for i in 0..4:
-  let skills = charasByLevel[2].mapIt(it.skillGraph)[0..i]
-  echo skills.len
+for i in 0..5:
+  let charas = charasByLevel[2][0..i]
+  echo charas.len
   stopWatch:
-    echo arith.reduceGraphs(skills)
+    echo arith.reduceGraphs(charas)
 if true : quit 0
 
 
@@ -120,7 +128,7 @@ for charas in charasByLevel:
 for charas in charasByLevel:
   let level = charas[0].level
   if level < 3 : continue
-  let allLevel = newChara(fmt"←のうちのどれか",level,x => charas.anyIt(it.check(x)),rerollFunc(false))
+  let allLevel = newChara(fmt"←のうちのどれか",level,0,x => charas.anyIt(it.check(x)),rerollFunc(false))
   echo "\nLEVEL ",level,"を取れる確率"
   for target in charas & allLevel:
     stdout.write target.name," : "
