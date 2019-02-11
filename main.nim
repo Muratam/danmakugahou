@@ -57,15 +57,12 @@ for charas in charasByLevel:
 for charas in charasByLevel:
   let level = charas[0].level
   if level < 3 : continue
-  let allLevel = newChara(fmt"LV{level}のいずれか",level,x => charas.anyIt(it.check(x)),rerollFunc(false))
-  var means = newSeq[float]()
-  var alls = newSeq[float]()
-  for skills in allCharas:
-    stdout.write "."
-    stdout.flushFile
-    means &= charas.mapIt(it.reduceGraph(skills.skillGraph).int).sum() / (charas.len)
-    alls &= allLevel.reduceGraph(skills.skillGraph)
+  let allLevel = newChara(fmt"←のうちのどれか",level,x => charas.anyIt(it.check(x)),rerollFunc(false))
+  echo "\nLEVEL ",level,"を取れる確率"
+  for target in charas & allLevel:
+    stdout.write target.name," : "
   echo ""
-  echo "LEVEL ",level
-  for it in 0..<allCharas.len:
-    echo fmt"{99.min(means[it].int):2d}%","\t",fmt"{99.min(alls[it].int):2d}%","\t",allCharas[it].name
+  for skillUser in allCharas:
+    for target in charas & allLevel:
+      stdout.write (target.reduceGraph(skillUser.skillGraph)).int , "% : "
+    echo skillUser.name

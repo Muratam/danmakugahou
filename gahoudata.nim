@@ -12,7 +12,7 @@ proc checkDice*(self:Chara,k:int):bool = k in self.okPattern # WARN
 
 proc newChara*(name:string,level:int,check:seq[int]->bool,skill:int->Dests) :Chara =
   new(result)
-  stderr.writeline "LOADING ",name
+  if not name.startsWith("LV") : stderr.writeline "LOADING ",name
   result.name = name
   result.level = level
   result.check = check
@@ -33,7 +33,7 @@ proc weightedSum(X:seq[int]): int =
 let notImplementedSkill = rerollFunc(false)
 let charasByLevel* = @[
   @[ # 2: System
-    newChara("No Skill",2,x=>true,rerollFunc(false)),
+    newChara("No Skill",2,x=>true,notImplementedSkill),
     newChara("Reroll",2,x=>true,rerollFunc(true)),
   ],@[ # 3
     newChara("チルノ", 3, x => x.weightedSum() == 9,changeFunc2(it1 >= 4 and it2 >= 4,(@[it1 - 1],@[it2 - 1]))),
@@ -77,8 +77,17 @@ let charasByLevel* = @[
     newChara("四季映姫", 8, x => x.weightedSum() <= 11,skillOfShiki),
     newChara("紫", 8, x => x[2] == 0 and x[3] == 0 and x[4] == 0 and x[5] == 0,skillOfYukari),
     newChara("神奈子", 8, x => x.weightedSum() >= 46,skillOfKanako),
+  ], @[ # 写真作成
+    newChara("同じ出目が3", 8, x => x.max() == 3,notImplementedSkill),
+    newChara("同じ出目が4", 8, x => x.max() == 4,notImplementedSkill),
+    newChara("同じ出目が5", 8, x => x.max() == 5,notImplementedSkill),
+    newChara("同じ出目が6", 8, x => x.max() == 6,notImplementedSkill),
+    newChara("同じ出目が7", 8, x => x.max() == 7,notImplementedSkill),
+    newChara("同じ出目が8", 8, x => x.max() == 8,notImplementedSkill),
+    newChara("同じ出目が9", 8, x => x.max() == 9,notImplementedSkill),
+    newChara("同じ出目が10", 8, x => x.max() == 10,notImplementedSkill),
   ]
 ]
 
 var allCharas* : seq[Chara] = @[]
-for charas in charasByLevel: allCharas &= charas
+for charas in charasByLevel: allCharas &= charas.filterIt(not it.name.startsWith("同"))
