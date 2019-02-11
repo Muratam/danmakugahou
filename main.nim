@@ -2,7 +2,11 @@ import sequtils,strutils,sugar,math,strformat,tables,algorithm,intSets,random,ti
 import lib
 import skill
 import gahoudata
+# import nimprof
+template `max=`*(x,y) = x = max(x,y)
+template `min=`*(x,y) = x = min(x,y)
 template stopwatch(body) = (let t1 = cpuTime();body;stderr.writeLine "TIME:",(cpuTime() - t1) * 1000,"ms")
+proc `^`(n:int) : int{.inline.} = (1 shl n)
 
 # WARN: ダイス数に注意
 # let reroll2 = skillGraphs[0] * skillGraphs[0]
@@ -14,18 +18,77 @@ proc rollDiceGraph(level:int):Table[int,float] =
   for k,v in dicePatternByLevel[level]: result[k] = v.float / denom
 proc reduceGraph(self:Chara,graph:Graph) : float=
   let rolled = rollDiceGraph(self.level)
-  for k,v in rolled:
-    var p = 0.0
+  proc calc(k:int):float =
+    # 各開始ロールに対して確率が最大になるように遷移を選択したい
     for vs in graph[k]:
-      var p2 = 0.0
-      for k2,v2 in vs:
-        if self.checkDice(k2): p2 += v * v2
-      p = p.max(p2)
-    result += p
+      var p = 0.0
+      for k2,v2 in vs: # その選択をした場合の期待値
+        if self.checkDice(k2): p += v2
+      result = result.max(p)
+      if abs(result - 1.0) < 1e-8 : return 1.0 # 確定
+  for k,v in rolled: result += calc(k) * v
   result *= 100.0
 
+type RevNode = seq[tuple[dst:int,val:float,others:Dest]]
+type RevGraph = Table[int,RevNode]
+proc getRevGraph(graph:Graph): RevGraph =
+  # BASE : 123 -> [{122:0.5 123:0.5},{123:1.0}...]
+  # REV  : 122 -> [(dst:123,val:0.5,others:{})]
+  result = initTable[int,RevNode]()
+  for src,dests in graph:
+    for dest in dests:
+      for d,val in dest:
+        var revDest = dest
+        revDest.del d
+        if d notin result : result[d] = @[]
+        result[d] &= (src,val,revDest)
+
+let nopGraph = notImplementedSkill.skillToGraph()
 proc reduceGraphs(self:Chara,graphs:seq[Graph]) : float =
-  0.0
+  if graphs.len == 0 : return self.reduceGraph(nopGraph)
+  if graphs.len == 1 : return self.reduceGraph(graphs[0])
+  let allPattern = toSeq(allDicePattern.keys)
+  let n = graphs.len
+  var dp = newTable[int,seq[float]]()
+  let revGraphs = graphs.mapIt(it.getRevGraph())
+  var P = newSeqWith(^n,newSeq[int]()) # 使ったスキルの数とそれに対応する０以外の頂点
+  # 何も使わなくても行ける場所
+  for p in allPattern:
+    dp[p] = newSeq[float](^n)
+    if p in self.okPattern :
+      dp[p][0] = 1.0
+      P[0] &= p
+  const eps = 1e-8
+  for i in 0 ..< ^n: # BitDPで確定させていく
+    for gi in 0..<n: # gi番目を埋めて(i or ^gi)にする
+      if (i and ^gi) > 0 : continue
+      for src in P[i]: # 確定済みの地点から伸ばす
+        if src notin revGraphs[gi] : continue
+        for D in revGraphs[gi][src]: # dst val others
+          var per = dp[src][i] * D.val
+          for otherK,otherV in D.others:
+            per += dp[otherK][i] * otherV
+          # 0 % だった
+          if per <= eps : continue
+          # すでに自分を使わなくてもよりよい解があるなら探索候補に入れる必要はない
+          if per < dp[D.dst].max() - eps : continue
+          dp[D.dst][i or ^gi] .max= per
+          P[i or ^gi] &= D.dst
+  let answers = toSeq(dp.pairs).mapIt((k:it[0],v:it[1].max())).toTable()
+  let rolled = rollDiceGraph(self.level)
+  for k,v in rolled: result += answers[k] * v
+  result *= 100.0
+
+
+let arith = charasByLevel[2][0]
+let cirno = charasByLevel[1][0]
+for i in 0..4:
+  let skills = charasByLevel[2].mapIt(it.skillGraph)[0..i]
+  echo skills.len
+  stopWatch:
+    echo arith.reduceGraphs(skills)
+if true : quit 0
+
 
 proc rollDice(level:int): int =
   var random = initRand((cpuTime() * 1000000).int)
