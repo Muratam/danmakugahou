@@ -54,9 +54,7 @@ for charas in charasByLevel:
   let level = charas[0].level
   if level < 3 : continue
   for chara in charas:
-    echo chara.name
-    echo chara.skillGraph.len
-    echo toSeq(chara.skillGraph.pairs).mapIt(it[1].mapIt(toSeq(it.pairs).len)).mapIt(it.sum()).sum()
+    echo chara.name, " : ", chara.skillGraph.len," -> ", toSeq(chara.skillGraph.pairs).mapIt(it[1].mapIt(toSeq(it.pairs).len)).mapIt(it.sum()).sum()
     # echo toSeq(chara.skillGraph.pairs)[10..20].mapIt((k:it[0],v:it[0]))
   # let allLevel = newChara(fmt"LV{level}のいずれか",level,x => charas.anyIt(it.check(x)),rerollFunc(true))
   # var means = newSeq[float]()

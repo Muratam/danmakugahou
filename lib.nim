@@ -1,5 +1,5 @@
 import sequtils,algorithm,tables
-const diceMaxCount = 8 # 8 ~ 13
+const diceMaxCount* = 8 # 8 ~ 13
 # 0 <-> {1}
 # 1 <-> {2}
 # 5 <-> {6}

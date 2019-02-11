@@ -6,30 +6,30 @@ type Graph* = Table[int,Dests]
 proc toHash(dest:Dest):Hash = hash(toSeq(dest.pairs).mapIt((it[0],(it[1] * 10000 + 0.5).int)))
 
 # アリス(ダイスをリロール) 後に藍(任意変更) == 天子 なので `*` で,天子も`*`として実装できておきたいが,一般化してしまうとパターンが多すぎるので無理
-# proc `*`*(A:Dests,B:Graph):Dests =
-#   result = @[]
-#   var patterns = newSeq[Dest]()
-#   var useds = initSet[Hash]()
-#   prettyprint A
-#   for aDsts in A:
-#     let destinations = toSeq(aDsts.pairs).mapIt((dests:B[it[0]],val:it[1]))
-#     proc fill(i:int,p:Dest) =
-#       let h = p.toHash()
-#       if h in useds: return
-#       useds.incl h
-#       if i == destinations.len :
-#         patterns &= p
-#         return
-#       let (dests,val) = destinations[i]
-#       for dest in dests:
-#         var next = p
-#         for k,v in dest:
-#           next[k] = next.getOrDefault(k,0.0) + val * v
-#         fill(i+1,next)
-#     fill(0,initTable[int,float]())
-#   prettyprint patterns
-#   result = patterns
-#   echo result.len
+proc `*`*(A:Dests,B:Graph):Dests =
+  result = @[]
+  var patterns = newSeq[Dest]()
+  var useds = initSet[Hash]()
+  prettyprint A
+  for aDsts in A:
+    let destinations = toSeq(aDsts.pairs).mapIt((dests:B[it[0]],val:it[1]))
+    proc fill(i:int,p:Dest) =
+      let h = p.toHash()
+      if h in useds: return
+      useds.incl h
+      if i == destinations.len :
+        patterns &= p
+        return
+      let (dests,val) = destinations[i]
+      for dest in dests:
+        var next = p
+        for k,v in dest:
+          next[k] = next.getOrDefault(k,0.0) + val * v
+        fill(i+1,next)
+    fill(0,initTable[int,float]())
+  result = patterns
+  # prettyprint patterns
+  # echo result.len
 
 
 # proc `*`*(A,B:Graph):Graph =
@@ -194,13 +194,8 @@ proc skillOfShiki*(src:int):Dests =
   result = @[]
   for p in patterns.items:
     result &= @[(p,1.0)].toTable()
-let reroll = rerollFunc(true)
-let rerollGraph = reroll.toAllPattern()
-let anyChangeGraph = changeFunc(true,toSeq(1..6)).toAllPattern()
-let anyChange2Graph = changeFunc2(true,(toSeq(1..6),toSeq(1..6))).toAllPattern()
-# ダイスを1個振り直した後一つを任意に変更
-
 proc skillOfTenshi*(src:int):Dests =
+  # ダイスを1個振り直した後一つを任意に変更
   result = @[]
   let dices = src.splitAsDecimal()
   for i in 0..<dices.len: # i番目を振り直して dに
@@ -225,6 +220,7 @@ proc skillOfTenshi*(src:int):Dests =
 proc addDices(dices:seq[int],addCount:int) : Table[int,float]=
   let denom = 6.power(addCount)
   result = initTable[int,float]()
+  if dices.len + addCount > diceMaxCount : return
   for k,v in dicePatternByLevel[addCount]:
     let nextKeys = (dices & k.splitAsDecimal()).toKey()
     result[nextKeys] = result.getOrDefault(nextKeys,0.0) + v / denom
@@ -271,6 +267,27 @@ proc skillOfKomachi*(src:int):Dests =
     var nexts = dices
     nexts.delete(i)
     result &= nexts.addDices(2)
-proc skillOfKanako*(src:int):Dests = discard
-  # ランダム+2 のち 任意2
-  # return @[src.splitAsDecimal().addDices(2)] * anyChange2Graph
+# let reroll = rerollFunc(true)
+# let rerollGraph = reroll.toAllPattern()
+
+# let anyChangeGraph = .toAllPattern()
+# let anyChange2Graph = .toAllPattern()
+let anyChange = changeFunc(true,toSeq(1..6))
+let anyChange2 = changeFunc2(true,(toSeq(1..6),toSeq(1..6)))
+proc skillOfKanako*(src:int):Dests =
+  # ランダム+2 のち 任意2変更
+  # = 任意2+rand2 || 任意1+rand1+任意1 || 任意0 + 任意2
+  result = @[]
+  let dices = src.splitAsDecimal()
+  block : # 任意２ + rand2
+    let changed2 = anyChange2(src)
+    for ch in changed2:
+      result &= @[toSeq(ch.keys)[0].splitAsDecimal().addDices(2)]
+  block : # 任意0+任意2
+    for k in dicePatternByLevel[2].keys:
+      result &= @[((dices & k.splitAsDecimal).toKey(),1.0)].toTable()
+  block : # 任意1+任意1+ランダム1
+    let changed1 = anyChange(src)
+    for ch in changed1:
+      for d in 1..6:
+        result &= (toSeq(ch.keys)[0].splitAsDecimal & @[d]).addDices(1)
