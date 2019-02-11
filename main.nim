@@ -24,8 +24,8 @@ proc reduceGraph(self:Chara,graph:Graph) : float=
     result += p
   result *= 100.0
 
-# proc reduceGraphs(self:Chara,graphs:seq[Graph]) : float =
-
+proc reduceGraphs(self:Chara,graphs:seq[Graph]) : float =
+  0.0
 
 proc rollDice(level:int): int =
   var random = initRand((cpuTime() * 1000000).int)
@@ -49,22 +49,23 @@ proc montecarloReduce(self:Chara,skillGraph:Graph) : float =
     result += p / montecarloCount
   result *= 100.0
 
-let arith = charasByLevel[4][0]
 for charas in charasByLevel:
   let level = charas[0].level
   if level < 3 : continue
-  for chara in charas:
-    echo chara.name, " : ", chara.skillGraph.len," -> ", toSeq(chara.skillGraph.pairs).mapIt(it[1].mapIt(toSeq(it.pairs).len)).mapIt(it.sum()).sum()
-    # echo toSeq(chara.skillGraph.pairs)[10..20].mapIt((k:it[0],v:it[0]))
-  # let allLevel = newChara(fmt"LV{level}のいずれか",level,x => charas.anyIt(it.check(x)),rerollFunc(true))
-  # var means = newSeq[float]()
-  # var alls = newSeq[float]()
-  # for skills in allCharas:
-  #   stdout.write "."
-  #   stdout.flushFile
-  #   means &= charas.mapIt(it.reduceGraph(skills.skillGraph*arith.skillGraph).int).sum() / (charas.len)
-  #   alls &= allLevel.reduceGraph(skills.skillGraph*arith.skillGraph)
-  # echo ""
-  # echo "LEVEL ",level
-  # for it in 0..<allCharas.len:
-  #   echo fmt"{99.min(means[it].int):2d}%","\t",fmt"{99.min(alls[it].int):2d}%","\t",allCharas[it].name
+  for chara in charas: echo chara.name, " : ", chara.skillGraph.len," -> ", toSeq(chara.skillGraph.pairs).mapIt(it[1].mapIt(toSeq(it.pairs).len)).mapIt(it.sum()).sum()
+
+for charas in charasByLevel:
+  let level = charas[0].level
+  if level < 3 : continue
+  let allLevel = newChara(fmt"LV{level}のいずれか",level,x => charas.anyIt(it.check(x)),rerollFunc(false))
+  var means = newSeq[float]()
+  var alls = newSeq[float]()
+  for skills in allCharas:
+    stdout.write "."
+    stdout.flushFile
+    means &= charas.mapIt(it.reduceGraph(skills.skillGraph).int).sum() / (charas.len)
+    alls &= allLevel.reduceGraph(skills.skillGraph)
+  echo ""
+  echo "LEVEL ",level
+  for it in 0..<allCharas.len:
+    echo fmt"{99.min(means[it].int):2d}%","\t",fmt"{99.min(alls[it].int):2d}%","\t",allCharas[it].name
