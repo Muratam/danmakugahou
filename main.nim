@@ -144,10 +144,10 @@ proc adventure() =
     for i,chara in currentCharas:
       echo fmt"  {percents[i]:.2f}% : {chara.name}"
     if currentLevel < 8:
-      echo "取った場合の次のLVの平均取得確率は以下のとおりです"
+      echo "取った場合の次のLVの最大取得確率は以下のとおりです"
       for i,chara in currentCharas:
         let nextCharas = allCharas.filterIt(it.level == currentLevel + 1)
-        echo fmt"  {nextCharas.mapIt(it.reduceGraphs(gotCharas & chara)).mean():.2f}% : {chara.name}"
+        echo fmt"  {nextCharas.mapIt(it.reduceGraphs(gotCharas & chara)).max():.2f}% : {chara.name}"
     echo ".................ダイスをロールしています...................."
     let canGets = toSeq(0..<currentCharas.len).filterIt(R.rand(100.0) < percents[it])
     if canGets.len == 0 :
