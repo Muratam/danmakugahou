@@ -134,7 +134,6 @@ proc adventure() =
   var gotCharas = newSeq[Chara]()
   while true:
     let currentCharas = if currentLevel == 9 : charasByLevel[7] else: allCharas.filterIt(it.level == currentLevel)
-
     echo "現在のLVは",currentLevel,"です."
     if gotCharas.len > 0:
       echo "現在の取得キャラは ",gotCharas.mapIt(it.name).join(",")," です."
