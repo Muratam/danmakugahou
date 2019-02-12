@@ -56,9 +56,9 @@ let charasByLevel* = @[
   ], @[ # 5
     newChara("イナバ", 5,0, x => x[2] == 0 and x[4] == 0 and x[6] == 0,changeFunc(it mod 2 == 1,@[2,4,6])),
     # newChara("パチュリー", 5,0, x => x.filterIt(it >= 1).len >= 5,skillOfPache),
-    newChara("咲夜", 5,0, x => x.weightedSum() <= 12,changeFunc(true,@[dices.max()])),
+    newChara("咲夜", 5,0, x => x.weightedSum() <= 12,changeFunc(true,@[dices.min()])),
     newChara("早苗", 5,0, x => x.max() >= 4,changeFunc2(it1 == 5 and it2 == 5,(toSeq(1..6),toSeq(1..6)))),
-    newChara("魔理沙", 5,0, x => x.weightedSum() >= 23,changeFunc(true,@[dices.min()])),
+    newChara("魔理沙", 5,0, x => x.weightedSum() >= 23,changeFunc(true,@[dices.max()])),
     newChara("妖夢", 5,-1, x => x[1] + x[2] + x[3] >= 5,changeFunc(it mod 2 == 1,@[if it == 1 : deletedNumber else:it div 2])),
     newChara("霊夢", 5,0, x => x[1] == 0 and x[2] == 0 and x[3] == 0,changeFunc(true,@[7 - it])),
   ], @[ # 6

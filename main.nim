@@ -139,43 +139,6 @@ proc reduceGraphs(self:Chara,charas:seq[Chara]):
   expected *= 100.0
   return (backTable,expected)
 
-proc remiriaTest() =
-  # レミリア(6D <= 12)を取るテスト
-  echo "---------------------------------"
-  let target = charasByLevel[4][0]
-  let charas = charasByLevel[1][0..4]
-  let(back,expected) = target.reduceGraphs(charas)
-  var rolled = 134556#rollDice(target.level)
-  echo fmt"{target.name} は {expected:.2f}% で撮影できます"
-  echo charas.mapIt(it.name).join(","), " が手持ちのキャラです."
-  echo "ダイスの出目は ",rolled," でした."
-  var S = ^(charas.len) - 1
-  echo fmt"最適戦略で行けば {back[rolled][S].val*100:.2f}% の確率で撮影できます."
-  if back[rolled][S].val < 1e-8 :
-    echo "どう頑張っても撮れません！残念"
-    return
-  for i in 0..charas.len:
-    if rolled in target.okPattern:
-      echo rolled," で ",target.name, "を取得できました！ "
-      return
-    if i == charas.len :
-      echo "失敗..."
-      return
-    let (next,nextDice,val) = back[rolled][S]
-    if next < 0 :
-      echo "どうがんばってももはや無理です..."
-      return
-    if nextDice == rolled:
-      echo charas[next].name,"は使用しませんでした."
-      S = S and (not ^next)
-      continue
-    echo "---------------------------------"
-    echo "現在のダイスは ",rolled," です."
-    echo fmt"現在の撮影成功確率は {val*100.0:.2f}%　です"
-    echo charas[next].name," のスキルで,ダイスを ",nextDice," に(しようと努力)してください."
-    S = S and (not ^next)
-    echo "スキル適用後のダイスを入力してください."
-    rolled = stdin.readLine.parseInt()
 
 proc showCharas() =
   for charas in charasByLevel:
@@ -207,18 +170,102 @@ proc adventure() =
     echo "現在のLVは",currentLevel,"です."
     if gotCharas.len > 0:
       echo "現在の取得キャラは ",gotCharas.mapIt(it.name).join(",")," です."
-    echo currentCharas.mapIt(it.name).join(","),"の取得に挑戦できます."
     echo "現在のそれぞれの取得確率は以下のとおりです."
-    let percents = currentCharas.mapIt(it.reduceGraphs(gotCharas)[1])
+    let reduceds = currentCharas.mapIt(it.reduceGraphs(gotCharas))
+    let percents = reduceds.mapIt(it[1])
     for i,chara in currentCharas:
       echo fmt"  {percents[i]:.2f}% : {chara.name}"
-    if currentLevel < 8:
-      echo "取った場合の次のLVの最大取得確率は以下のとおりです"
-      for i,chara in currentCharas:
-        let nextCharas = allCharas.filterIt(it.level == currentLevel + 1)
-        echo fmt"  {nextCharas.mapIt(it.reduceGraphs(gotCharas & chara)[1]).max():.2f}% : {chara.name}"
-    echo ".................ダイスをロールしています...................."
-    let canGets = toSeq(0..<currentCharas.len).filterIt(R.rand(100.0) < percents[it])
+    # if currentLevel < 8:
+    #   echo "取った場合の次のLVの最大取得確率は以下のとおりです"
+    #   for i,chara in currentCharas:
+    #     let nextCharas = allCharas.filterIt(it.level == currentLevel + 1)
+    #     echo fmt"  {nextCharas.mapIt(it.reduceGraphs(gotCharas & chara)[1]).max():.2f}% : {chara.name}"
+    proc tryRollAutomatic():seq[int] =
+      echo ".................ダイスをロールしています...................."
+      echo "ダイスを振っていい感じに頑張った結果,以下が取れそうです."
+      return toSeq(0..<currentCharas.len).filterIt(R.rand(100.0) < percents[it])
+
+    proc tryRollManually():seq[int] =
+      var rolled = -1
+      while true:
+        echo "ダイスを自分で振りますか？ [y/n]"
+        let S = stdin.readLine
+        if S == "y" :
+          echo "出た目を入力してください"
+          try:
+            let n = stdin.readLine.parseInt()
+            if n.splitAsDecimal().len != currentLevel:continue
+            rolled = n.splitAsDecimal().toKey()
+            break
+          except:discard
+        elif S == "n":
+          rolled = rollDice(currentLevel)
+          break
+      echo "ダイスの出目は ",rolled," でした."
+      if gotCharas.len == 0:
+        return toSeq(0..<currentCharas.len).filterIt(rolled in currentCharas[it].okPattern)
+      var S = ^(gotCharas.len) - 1
+      let B = reduceds.mapIt(it[0])
+      var canGets = newSeq[int]()
+      while true:
+        echo "現在の撮影成功確率は以下のとおりです."
+        for i,chara in currentCharas:
+          if rolled notin B[i] : continue
+          let (next,nextDice,val) = B[i][rolled][S]
+          if next < 0 : continue
+          if nextDice != rolled:
+            echo fmt"{gotCharas[next].name} で {nextDice} に ({val*100.0:.2f}%) : {chara.name}"
+            continue
+          if rolled in chara.okPattern:
+            echo fmt"{chara.name} を 獲得できます."
+            canGets &= i
+            continue
+          echo fmt"{gotCharas[next].name} は {chara.name} には不要です. ({val*100.0:.2f}%)"
+        while true:
+          var oks = newSeq[int]()
+          for i,chara in gotCharas:
+            if (S and ^i) == 0 : continue
+            oks &= i
+          if oks.len == 0:
+            return canGets.deduplicate
+          echo "スキルを使うなら対応する番号を,終了するなら 9 を入力してください"
+          for i in oks:
+            echo i," : ",gotCharas[i].name
+          try:
+            let n = stdin.readLine().parseInt()
+            if n != 9 and n notin oks : continue
+            if n == 9: return canGets.deduplicate
+            echo "スキル適用後のダイスを入力してください."
+            rolled = stdin.readLine().parseInt().splitAsDecimal().toKey()
+            S = S and (not ^n)
+            break
+          except: discard
+      # return canGets.deduplicate
+      # if back[rolled][S].val < 1e-8 :
+      #   echo "どう頑張っても撮れません！残念"
+      #   return
+      # for i in 0..charas.len:
+      #   if rolled in target.okPattern:
+      #     echo rolled," で ",target.name, "を取得できました！ "
+      #     return
+      #   if i == charas.len :
+      #     echo "失敗..."
+      #     return
+      #   let (next,nextDice,val) = back[rolled][S]
+      #   if next < 0 :
+      #     echo "どうがんばってももはや無理です..."
+      #     return
+      #   if nextDice == rolled:
+      #     echo charas[next].name,"は使用しませんでした."
+      #     S = S and (not ^next)
+      #     continue
+      #   echo "---------------------------------"
+      #   echo "現在のダイスは ",rolled," です."
+      #   echo fmt"現在の撮影成功確率は {val*100.0:.2f}%　です"
+      #   echo charas[next].name," のスキルで,ダイスを ",nextDice," に(しようと努力)してください."
+      #   S = S and (not ^next)
+
+    let canGets = tryRollManually()
     if canGets.len == 0 :
       echo "残念ながら誰も取得できませんでした..."
       echo "1からやり直しましょう"
@@ -229,7 +276,7 @@ proc adventure() =
       discard stdin.readLine
       return
     while true:
-      echo "ダイスを振っていい感じに頑張った結果,以下が取れそうです.番号を入力してください."
+      echo "以下が取得できます.番号を入力してください."
       for i in canGets:
         echo fmt"  {i} : {currentCharas[i].name}"
       let S = stdin.readLine
