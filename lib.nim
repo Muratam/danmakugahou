@@ -1,7 +1,15 @@
 import sequtils,algorithm,tables
-const diceMaxCount* = 10 # 8 ~ 13
+const diceMaxCount* = 6 # 8 ~ 13
 proc prettyPrint*[T](A:seq[T]) =
   for a in A: echo a
+
+proc argMax*[T](arr:seq[T]):int =
+  result = 0
+  var val = arr[0]
+  for i,a in arr:
+    if a <= val: continue
+    val = a
+    result = i
 
 proc mean*[T](A:seq[T]):T = A.sum() / A.len().float
 

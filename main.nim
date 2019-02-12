@@ -123,7 +123,7 @@ proc reduceGraphs(self:Chara,charas:seq[Chara]):
       backTable[k][i] = (-1,0,0.0)
       for j in 0 ..< n :
         if (i and ^j) == 0 : continue
-        # キャラjを使った時の選択肢の中で最も成功確率の大きいものを選ぶ
+        # キャラjを使った時の選択肢の中で最も成功確率の大きいものを選んでそれにしようとする
         for dest in charas[j].skillGraph[k]:
           var exp = 0.0
           var ok = true
@@ -133,29 +133,50 @@ proc reduceGraphs(self:Chara,charas:seq[Chara]):
               break
             exp += val * dp[pTable[key]][i and (not ^j)]
           if not ok : continue
-          if exp < backTable[k][i].val : continue
-          backTable[k][i] = (j,toSeq(dest.keys)[0],exp)
+          if exp <= backTable[k][i].val : continue
+          let nextDiceIndex = toSeq(dest.keys).mapIt(dp[pTable[it]][i and (not ^j)]).argMax()
+          backTable[k][i] = (j,toSeq(dest.keys)[nextDiceIndex],exp)
   expected *= 100.0
   return (backTable,expected)
 
 proc remiriaTest() =
-  # @["アリス", "てゐ", "にとり", "メルラン", "リリカ"]でレミリアを取る場合(61%)の指針のテスト
-  let target = charasByLevel[4][0] # 12以下
-  let charas = charasByLevel[2][0..4]
+  # レミリア(6D <= 12)を取るテスト
+  echo "---------------------------------"
+  let target = charasByLevel[4][0]
+  let charas = charasByLevel[1][0..4]
   let(back,expected) = target.reduceGraphs(charas)
-  var rolled = rollDice(target.level)
-  echo expected
-  echo charas.mapIt(it.name)
+  var rolled = 134556#rollDice(target.level)
+  echo fmt"{target.name} は {expected:.2f}% で撮影できます"
+  echo charas.mapIt(it.name).join(","), " が手持ちのキャラです."
+  echo "ダイスの出目は ",rolled," でした."
   var S = ^(charas.len) - 1
-  for i in 0..<charas.len:
-    echo rolled
-    echo back[rolled][S]
+  echo fmt"最適戦略で行けば {back[rolled][S].val*100:.2f}% の確率で撮影できます."
+  if back[rolled][S].val < 1e-8 :
+    echo "どう頑張っても撮れません！残念"
+    return
+  for i in 0..charas.len:
+    if rolled in target.okPattern:
+      echo rolled," で ",target.name, "を取得できました！ "
+      return
+    if i == charas.len :
+      echo "失敗..."
+      return
     let (next,nextDice,val) = back[rolled][S]
+    if next < 0 :
+      echo "どうがんばってももはや無理です..."
+      return
+    if nextDice == rolled:
+      echo charas[next].name,"は使用しませんでした."
+      S = S and (not ^next)
+      continue
+    echo "---------------------------------"
+    echo "現在のダイスは ",rolled," です."
+    echo fmt"現在の撮影成功確率は {val*100.0:.2f}%　です"
+    echo charas[next].name," のスキルで,ダイスを ",nextDice," に(しようと努力)してください."
     S = S and (not ^next)
+    echo "スキル適用後のダイスを入力してください."
     rolled = stdin.readLine.parseInt()
 
-
-  if true: quit 0
 proc showCharas() =
   for charas in charasByLevel:
     let level = charas[0].level
