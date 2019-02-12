@@ -127,6 +127,7 @@ proc showCharas() =
         stdout.write (target.reduceGraph(skillUser.skillGraph)).int , "% : "
       echo skillUser.name
 
+
 var R = random.initRand((cpuTime()*1000).int)
 proc adventure() =
   # 1人でLV3からはじめて,リトライ・振り直しカードなしでLV8まで(同じLVの撮影をせずに)進めて最後の写真の点数を競う
@@ -142,6 +143,11 @@ proc adventure() =
     let percents = currentCharas.mapIt(it.reduceGraphs(gotCharas))
     for i,chara in currentCharas:
       echo fmt"  {percents[i]:.2f}% : {chara.name}"
+    if currentLevel < 8:
+      echo "取った場合の次のLVの平均取得確率は以下のとおりです"
+      for i,chara in currentCharas:
+        let nextCharas = allCharas.filterIt(it.level == currentLevel + 1)
+        echo fmt"  {nextCharas.mapIt(it.reduceGraphs(gotCharas & chara)).mean():.2f}% : {chara.name}"
     discard stdin.readLine
     let canGets = toSeq(0..<currentCharas.len).filterIt(R.rand(100.0) < percents[it])
     if canGets.len == 0 :
@@ -153,7 +159,8 @@ proc adventure() =
       return
     while true:
       echo "ダイスを振っていい感じに頑張った結果,以下が取れそうです.番号を入力してください."
-      for i in canGets: echo fmt"  {i} : {currentCharas[i].name}"
+      for i in canGets:
+        echo fmt"  {i} : {currentCharas[i].name}"
       let S = stdin.readLine
       try:
         let n = S.parseInt()

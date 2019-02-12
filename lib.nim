@@ -3,6 +3,8 @@ const diceMaxCount* = 10 # 8 ~ 13
 proc prettyPrint*[T](A:seq[T]) =
   for a in A: echo a
 
+proc mean*[T](A:seq[T]):T = A.sum() / A.len().float
+
 proc power*(x,n:int): int =
   if n <= 1: return if n == 1: x else: 1
   let pow_2 = power(x,n div 2)
