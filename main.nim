@@ -148,11 +148,12 @@ proc adventure() =
       for i,chara in currentCharas:
         let nextCharas = allCharas.filterIt(it.level == currentLevel + 1)
         echo fmt"  {nextCharas.mapIt(it.reduceGraphs(gotCharas & chara)).mean():.2f}% : {chara.name}"
-    discard stdin.readLine
+    echo ".................ダイスをロールしています...................."
     let canGets = toSeq(0..<currentCharas.len).filterIt(R.rand(100.0) < percents[it])
     if canGets.len == 0 :
       echo "残念ながら誰も取得できませんでした..."
       echo "1からやり直しましょう"
+      discard stdin.readLine
       return
     if currentLevel == 9:
       echo "今回の冒険の結果は",currentCharas[canGets.max()].name,"でした！"
