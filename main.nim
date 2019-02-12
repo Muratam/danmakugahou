@@ -41,6 +41,7 @@ proc getRevGraph(graph:Graph,pTable:Table[int,int],pSize:int): RevGraph =
   # REV  : 122 -> [(dst:123,val:0.5,others:{})]
   result = newSeq[RevNode](pSize)
   for src,dests in graph:
+    if src notin pTable : continue
     for dest in dests:
       var ok = true
       for d,val in dest: # 対象範囲外のパターンに行く可能性
@@ -58,6 +59,7 @@ proc reduceGraphs(self:Chara,charas:seq[Chara]) : float =
   if n == 0 : return self.reduceGraph(nopGraph)
   if n == 1 : return self.reduceGraph(charas[0].skillGraph)
   if n > 10 : return 0.0 # 1秒以上かかるし多分死ぬ
+
   let maxDiff = charas.mapIt(it.diceDiff.max(0)).sum()
   let minDiff = charas.mapIt(it.diceDiff.min(0)).sum()
   # ダイスの増減分しか探索しなくてよい
@@ -124,13 +126,15 @@ proc showCharas() =
       for target in charas & allLevel:
         stdout.write (target.reduceGraph(skillUser.skillGraph)).int , "% : "
       echo skillUser.name
+
+var R = random.initRand((cpuTime()*1000).int)
 proc adventure() =
   # 1人でLV3からはじめて,リトライ・振り直しカードなしでLV8まで(同じLVの撮影をせずに)進めて最後の写真の点数を競う
   var currentLevel = 3
   var gotCharas = newSeq[Chara]()
   while true:
-    var R = random.initRand((cpuTime()*10000).int)
-    let currentCharas = allCharas.filterIt(it.level == currentLevel)
+    let currentCharas = if currentLevel == 9 : charasByLevel[7] else: allCharas.filterIt(it.level == currentLevel)
+
     echo "現在のLVは",currentLevel,"です."
     if gotCharas.len > 0:
       echo "現在の取得キャラは ",gotCharas.mapIt(it.name).join(",")," です."
@@ -145,18 +149,22 @@ proc adventure() =
       echo "残念ながら誰も取得できませんでした..."
       echo "1からやり直しましょう"
       return
+    if currentLevel == 9:
+      echo "今回の冒険の結果は",currentCharas[canGets.max()].name,"でした！"
+      return
     while true:
       echo "ダイスを振っていい感じに頑張った結果,以下が取れそうです.番号を入力してください."
       for i in canGets: echo fmt"  {i} : {currentCharas[i].name}"
       let S = stdin.readLine
       try:
         let n = S.parseInt()
+        if n == 9 :
+          echo "冒険をやり直します"
+          return
         if n notin canGets: continue
         gotCharas &= currentCharas[n]
         currentLevel += 1
         break
       except: continue
-
-
 while true:
   adventure()
