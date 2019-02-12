@@ -9,6 +9,12 @@ proc `^`(n:int) : int{.inline.} = (1 shl n)
 
 # WARN: ダイス数に注意
 
+proc rollDice(level:int): int =
+  var random = initRand((cpuTime() * 1000000).int)
+  var dices = newSeq[int]()
+  for _ in 0..<level: dices &= 1 + (random.next() mod 6).int
+  return dices.toKey()
+
 proc rollDiceGraph(level:int):Table[int,float] =
   let denom = 6.power(level).float
   result = initTable[int,float]()
@@ -26,7 +32,7 @@ proc reduceGraph(self:Chara,graph:Graph) : float=
   for k,v in rolled: result += calc(k) * v
   result *= 100.0
 
-# Tableから脱却したい
+# Tableから脱却
 type Edge = tuple[dst:int,val:float]
 type RevNode = seq[tuple[e:Edge,others:seq[Edge]]]
 type RevGraph = seq[RevNode]
@@ -54,12 +60,15 @@ proc getRevGraph(graph:Graph,pTable:Table[int,int],pSize:int): RevGraph =
         result[d] &= ((pTable[src],val),toSeq(revDest.pairs))
 
 let nopGraph = notImplementedSkill.skillToGraph()
-proc reduceGraphs(self:Chara,charas:seq[Chara]) : float =
-  var n = charas.len
-  if n == 0 : return self.reduceGraph(nopGraph)
-  if n == 1 : return self.reduceGraph(charas[0].skillGraph)
-  if n > 10 : return 0.0 # 1秒以上かかるし多分死ぬ
 
+# key だったとき(かつ0~^nまでの状態の時)に次に行うべき選択肢番号(=キャラ番号)とその場合の取れる確率
+type BackTrack = tuple[next,nextDice:int,val:float]
+proc reduceGraphs(self:Chara,charas:seq[Chara]):
+    tuple[back:Table[int,seq[BackTrack]],expected:float] =
+  var backTable = initTable[int,seq[BackTrack]]()
+  var n = charas.len
+  if n == 0 : return (backTable,self.reduceGraph(nopGraph))
+  if n > 10 : return (backTable,0.0) # 1秒以上かかるし多分死ぬ
   let maxDiff = charas.mapIt(it.diceDiff.max(0)).sum()
   let minDiff = charas.mapIt(it.diceDiff.min(0)).sum()
   # ダイスの増減分しか探索しなくてよい
@@ -72,14 +81,14 @@ proc reduceGraphs(self:Chara,charas:seq[Chara]) : float =
   let pSize = mayPattern.len
   let revGraphs = charas.mapIt(it.skillGraph.getRevGraph(pTable,pSize))
   var dp = newSeq[seq[float]](pSize)
+  # 使ったスキルの数とそれに対応する０以外の頂点
+  var P = newSeqWith(^n,newSeq[bool](pSize))
   # 何も使わなくても行ける場所
-  var P = newSeqWith(^n,newSeq[bool](pSize)) # 使ったスキルの数とそれに対応する０以外の頂点
   for i,p in mayPattern:
     dp[i] = newSeq[float](^n)
     if p in self.okPattern :
       dp[i][0] = 1.0
       P[0][i] = true
-  # const eps = 1e-12
   const approximateThreshold = 7
   const eps = 1e-12
   # O(n*2^n*...)
@@ -105,9 +114,48 @@ proc reduceGraphs(self:Chara,charas:seq[Chara]) : float =
           P[nextIndex][D.e.dst] = true
   let answers = toSeq(dp.pairs).mapIt((k:it[0],v:it[1].max())).toTable()
   let rolled = rollDiceGraph(self.level)
-  for k,v in rolled: result += answers[pTable[k]] * v
-  result *= 100.0
+  var expected = 0.0
+  for k,v in rolled:
+    expected += answers[pTable[k]] * v
+    backTable[k] = newSeq[BackTrack](^n)
+    # dp で 1 が立ってる -> それを使える
+    for i in 0 ..< ^n:
+      backTable[k][i] = (-1,0,0.0)
+      for j in 0 ..< n :
+        if (i and ^j) == 0 : continue
+        # キャラjを使った時の選択肢の中で最も成功確率の大きいものを選ぶ
+        for dest in charas[j].skillGraph[k]:
+          var exp = 0.0
+          var ok = true
+          for key,val in dest:
+            if key notin pTable:
+              ok = false
+              break
+            exp += val * dp[pTable[key]][i and (not ^j)]
+          if not ok : continue
+          if exp < backTable[k][i].val : continue
+          backTable[k][i] = (j,toSeq(dest.keys)[0],exp)
+  expected *= 100.0
+  return (backTable,expected)
 
+proc remiriaTest() =
+  # @["アリス", "てゐ", "にとり", "メルラン", "リリカ"]でレミリアを取る場合(61%)の指針のテスト
+  let target = charasByLevel[4][0] # 12以下
+  let charas = charasByLevel[2][0..4]
+  let(back,expected) = target.reduceGraphs(charas)
+  var rolled = rollDice(target.level)
+  echo expected
+  echo charas.mapIt(it.name)
+  var S = ^(charas.len) - 1
+  for i in 0..<charas.len:
+    echo rolled
+    echo back[rolled][S]
+    let (next,nextDice,val) = back[rolled][S]
+    S = S and (not ^next)
+    rolled = stdin.readLine.parseInt()
+
+
+  if true: quit 0
 proc showCharas() =
   for charas in charasByLevel:
     let level = charas[0].level
@@ -140,14 +188,14 @@ proc adventure() =
       echo "現在の取得キャラは ",gotCharas.mapIt(it.name).join(",")," です."
     echo currentCharas.mapIt(it.name).join(","),"の取得に挑戦できます."
     echo "現在のそれぞれの取得確率は以下のとおりです."
-    let percents = currentCharas.mapIt(it.reduceGraphs(gotCharas))
+    let percents = currentCharas.mapIt(it.reduceGraphs(gotCharas)[1])
     for i,chara in currentCharas:
       echo fmt"  {percents[i]:.2f}% : {chara.name}"
     if currentLevel < 8:
       echo "取った場合の次のLVの最大取得確率は以下のとおりです"
       for i,chara in currentCharas:
         let nextCharas = allCharas.filterIt(it.level == currentLevel + 1)
-        echo fmt"  {nextCharas.mapIt(it.reduceGraphs(gotCharas & chara)).max():.2f}% : {chara.name}"
+        echo fmt"  {nextCharas.mapIt(it.reduceGraphs(gotCharas & chara)[1]).max():.2f}% : {chara.name}"
     echo ".................ダイスをロールしています...................."
     let canGets = toSeq(0..<currentCharas.len).filterIt(R.rand(100.0) < percents[it])
     if canGets.len == 0 :
@@ -157,6 +205,7 @@ proc adventure() =
       return
     if currentLevel == 9:
       echo "今回の冒険の結果は",currentCharas[canGets.max()].name,"でした！"
+      discard stdin.readLine
       return
     while true:
       echo "ダイスを振っていい感じに頑張った結果,以下が取れそうです.番号を入力してください."
