@@ -29,27 +29,37 @@ proc reduceGraph(self:Chara,graph:Graph) : float=
   for k,v in rolled: result += calc(k) * v
   result *= 100.0
 
-type RevNode = seq[tuple[dst:int,val:float,others:Dest]]
-type RevGraph = Table[int,RevNode]
-proc getRevGraph(graph:Graph): RevGraph =
+# Tableから脱却したい
+type Edge = tuple[dst:int,val:float]
+type RevNode = seq[tuple[e:Edge,others:seq[Edge]]]
+type RevGraph = seq[RevNode]
+proc compressPattern(patterns:seq[int]):Table[int,int]=
+  # 少ないパターンしかないのでTableを脱却する
+  # 逆方向は patterns[3] == 345 のようにそのまま
+  result = initTable[int,int]()
+  for i,p in patterns: result[p] = i
+
+proc getRevGraph(graph:Graph,pTable:Table[int,int],pSize:int): RevGraph =
   # BASE : 123 -> [{122:0.5 123:0.5},{123:1.0}...]
   # REV  : 122 -> [(dst:123,val:0.5,others:{})]
-  result = initTable[int,RevNode]()
+  result = newSeq[RevNode](pSize)
   for src,dests in graph:
     for dest in dests:
-      for d,val in dest:
-        var revDest = dest
+      var ok = true
+      for d,val in dest: # 対象範囲外のパターンに行く可能性
+        if d notin pTable: ok = false
+      if not ok : continue
+      let pDest = toSeq(dest.pairs).mapIt((pTable[it[0]],it[1])).toTable()
+      for d,val in pDest:
+        var revDest = pDest
         revDest.del d
-        if d notin result : result[d] = @[]
-        result[d] &= (src,val,revDest)
+        result[d] &= ((pTable[src],val),toSeq(revDest.pairs))
 
 let nopGraph = notImplementedSkill.skillToGraph()
 proc reduceGraphs(self:Chara,charas:seq[Chara]) : float =
   let n = charas.len
   if n == 0 : return self.reduceGraph(nopGraph)
   if n == 1 : return self.reduceGraph(charas[0].skillGraph)
-  var dp = newTable[int,seq[float]]()
-  let revGraphs = charas.mapIt(it.skillGraph.getRevGraph())
   let maxDiff = charas.mapIt(it.diceDiff.max(0)).sum()
   let minDiff = charas.mapIt(it.diceDiff.min(0)).sum()
   # ダイスの増減分しか探索しなくてよい
@@ -58,33 +68,36 @@ proc reduceGraphs(self:Chara,charas:seq[Chara]) : float =
     for dices in dicePatternByLevel[self.level + minDiff..self.level+maxDiff]:
       for k in dices.keys: result &= k
   )()
+  let pTable = mayPattern.compressPattern()
+  let pSize = mayPattern.len
+  let revGraphs = charas.mapIt(it.skillGraph.getRevGraph(pTable,pSize))
+  var dp = newSeq[seq[float]](pSize)
   # 何も使わなくても行ける場所
   var P = newSeqWith(^n,newSeq[int]()) # 使ったスキルの数とそれに対応する０以外の頂点
-  for p in mayPattern:
-    dp[p] = newSeq[float](^n)
+  for i,p in mayPattern:
+    dp[i] = newSeq[float](^n)
     if p in self.okPattern :
-      dp[p][0] = 1.0
-      P[0] &= p
+      dp[i][0] = 1.0
+      P[0] &= i
   const eps = 1e-8
   for i in 0 ..< ^n: # BitDPで確定させていく
     for gi in 0..<n: # gi番目を埋めて(i or ^gi)にする
       if (i and ^gi) > 0 : continue
       for src in P[i]: # 確定済みの地点から伸ばす
-        if src notin revGraphs[gi] : continue
         for D in revGraphs[gi][src]: # dst val others
-          if D.dst notin dp : continue # 増やす / 減らす系が対象外の場所を見ることがあるので
-          var per = dp[src][i] * D.val
-          for otherK,otherV in D.others:
-            per += dp[otherK][i] * otherV
+          # if D.e.dst notin dp : continue # 増やす / 減らす系が対象外の場所を見ることがあるので
+          var per = dp[src][i] * D.e.val
+          for other in D.others:
+            per += dp[other.dst][i] * other.val
           # 0 % だった
           if per <= eps : continue
           # すでに自分を使わなくてもよりよい解があるなら探索候補に入れる必要はない
-          if per < dp[D.dst].max() - eps : continue
-          dp[D.dst][i or ^gi] .max= per
-          P[i or ^gi] &= D.dst
+          if per < dp[D.e.dst].max() - eps : continue
+          dp[D.e.dst][i or ^gi] .max= per
+          P[i or ^gi] &= D.e.dst
   let answers = toSeq(dp.pairs).mapIt((k:it[0],v:it[1].max())).toTable()
   let rolled = rollDiceGraph(self.level)
-  for k,v in rolled: result += answers[k] * v
+  for k,v in rolled: result += answers[pTable[k]] * v
   result *= 100.0
 
 
