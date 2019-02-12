@@ -92,4 +92,4 @@ let charasByLevel* = @[
 ]
 
 var allCharas* : seq[Chara] = @[]
-for charas in charasByLevel: allCharas &= charas.filterIt(not it.name.startsWith("同"))
+for charas in charasByLevel: allCharas &= charas.filterIt(not it.name.startsWith("同") and it.level >= 3)

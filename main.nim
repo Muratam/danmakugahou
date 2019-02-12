@@ -2,7 +2,6 @@ import sequtils,strutils,sugar,math,strformat,tables,algorithm,intSets,random,ti
 import lib
 import skill
 import gahoudata
-# import nimprof
 template `max=`*(x,y) = x = max(x,y)
 template `min=`*(x,y) = x = min(x,y)
 template stopwatch(body) = (let t1 = cpuTime();body;stderr.writeLine "TIME:",(cpuTime() - t1) * 1000,"ms")
@@ -107,20 +106,57 @@ proc reduceGraphs(self:Chara,charas:seq[Chara]) : float =
   for k,v in rolled: result += answers[pTable[k]] * v
   result *= 100.0
 
-for charas in charasByLevel:
-  let level = charas[0].level
-  if level < 3 : continue
-  for chara in charas: echo chara.name, " : ", chara.skillGraph.len," -> ", toSeq(chara.skillGraph.pairs).mapIt(it[1].mapIt(toSeq(it.pairs).len)).mapIt(it.sum()).sum()
+proc showCharas() =
+  for charas in charasByLevel:
+    let level = charas[0].level
+    if level < 3 : continue
+    for chara in charas: echo chara.name, " : ", chara.skillGraph.len," -> ", toSeq(chara.skillGraph.pairs).mapIt(it[1].mapIt(toSeq(it.pairs).len)).mapIt(it.sum()).sum()
 
-for charas in charasByLevel:
-  let level = charas[0].level
-  if level < 3 : continue
-  let allLevel = newChara(fmt"←のうちのどれか",level,0,x => charas.anyIt(it.check(x)),rerollFunc(false))
-  echo "\nLEVEL ",level,"を取れる確率"
-  for target in charas & allLevel:
-    stdout.write target.name," : "
-  echo ""
-  for skillUser in allCharas:
+  for charas in charasByLevel:
+    let level = charas[0].level
+    if level < 3 : continue
+    let allLevel = newChara(fmt"←のうちのどれか",level,0,x => charas.anyIt(it.check(x)),rerollFunc(false))
+    echo "\nLEVEL ",level,"を取れる確率"
     for target in charas & allLevel:
-      stdout.write (target.reduceGraph(skillUser.skillGraph)).int , "% : "
-    echo skillUser.name
+      stdout.write target.name," : "
+    echo ""
+    for skillUser in allCharas:
+      for target in charas & allLevel:
+        stdout.write (target.reduceGraph(skillUser.skillGraph)).int , "% : "
+      echo skillUser.name
+proc adventure() =
+  # 1人でLV3からはじめて,リトライ・振り直しカードなしでLV8まで(同じLVの撮影をせずに)進めて最後の写真の点数を競う
+  var currentLevel = 3
+  var gotCharas = newSeq[Chara]()
+  while true:
+    var R = random.initRand((cpuTime()*10000).int)
+    let currentCharas = allCharas.filterIt(it.level == currentLevel)
+    echo "現在のLVは",currentLevel,"です."
+    if gotCharas.len > 0:
+      echo "現在の取得キャラは ",gotCharas.mapIt(it.name).join(",")," です."
+    echo currentCharas.mapIt(it.name).join(","),"の取得に挑戦できます."
+    echo "現在のそれぞれの取得確率は以下のとおりです."
+    let percents = currentCharas.mapIt(it.reduceGraphs(gotCharas))
+    for i,chara in currentCharas:
+      echo fmt"  {percents[i]:.2f}% : {chara.name}"
+    discard stdin.readLine
+    let canGets = toSeq(0..<currentCharas.len).filterIt(R.rand(100.0) < percents[it])
+    if canGets.len == 0 :
+      echo "残念ながら誰も取得できませんでした..."
+      echo "1からやり直しましょう"
+      return
+    while true:
+      echo "ダイスを振っていい感じに頑張った結果,以下が取れそうです.番号を入力してください."
+      for i in canGets: echo fmt"  {i} : {currentCharas[i].name}"
+      let S = stdin.readLine
+      try:
+        let n = S.parseInt()
+        if n notin canGets: continue
+        gotCharas &= currentCharas[n]
+        currentLevel += 1
+        break
+      except: continue
+
+
+while true:
+  adventure()
