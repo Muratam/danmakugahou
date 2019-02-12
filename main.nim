@@ -240,31 +240,6 @@ proc adventure() =
             S = S and (not ^n)
             break
           except: discard
-      # return canGets.deduplicate
-      # if back[rolled][S].val < 1e-8 :
-      #   echo "どう頑張っても撮れません！残念"
-      #   return
-      # for i in 0..charas.len:
-      #   if rolled in target.okPattern:
-      #     echo rolled," で ",target.name, "を取得できました！ "
-      #     return
-      #   if i == charas.len :
-      #     echo "失敗..."
-      #     return
-      #   let (next,nextDice,val) = back[rolled][S]
-      #   if next < 0 :
-      #     echo "どうがんばってももはや無理です..."
-      #     return
-      #   if nextDice == rolled:
-      #     echo charas[next].name,"は使用しませんでした."
-      #     S = S and (not ^next)
-      #     continue
-      #   echo "---------------------------------"
-      #   echo "現在のダイスは ",rolled," です."
-      #   echo fmt"現在の撮影成功確率は {val*100.0:.2f}%　です"
-      #   echo charas[next].name," のスキルで,ダイスを ",nextDice," に(しようと努力)してください."
-      #   S = S and (not ^next)
-
     let canGets = tryRollManually()
     if canGets.len == 0 :
       echo "残念ながら誰も取得できませんでした..."
