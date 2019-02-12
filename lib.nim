@@ -1,5 +1,5 @@
 import sequtils,algorithm,tables
-const diceMaxCount* = 8 # 8 ~ 13
+const diceMaxCount* = 10 # 8 ~ 13
 proc prettyPrint*[T](A:seq[T]) =
   for a in A: echo a
 
