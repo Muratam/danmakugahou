@@ -206,7 +206,6 @@ proc adventure() =
         return toSeq(0..<currentCharas.len).filterIt(rolled in currentCharas[it].okPattern)
       var S = ^(gotCharas.len) - 1
       let B = reduceds.mapIt(it[0])
-      var canGets = newSeq[int]()
       while true:
         echo "現在の撮影成功確率は以下のとおりです."
         for i,chara in currentCharas:
@@ -218,23 +217,29 @@ proc adventure() =
             continue
           if rolled in chara.okPattern:
             echo fmt"{chara.name} を 獲得できます."
-            canGets &= i
             continue
-          echo fmt"{gotCharas[next].name} は {chara.name} には不要です. ({val*100.0:.2f}%)"
+          var S2 = S
+          while true:
+            let (next,nextDice,val) = B[i][rolled][S2]
+            S2 = S2 and (not ^next)
+            if nextDice != rolled:
+              echo fmt"{gotCharas[next].name} で {nextDice} に ({val*100.0:.2f}%) : {chara.name}"
+              break
+            echo fmt"{gotCharas[next].name} は {chara.name} には不要です."
         while true:
           var oks = newSeq[int]()
           for i,chara in gotCharas:
             if (S and ^i) == 0 : continue
             oks &= i
           if oks.len == 0:
-            return canGets.deduplicate
+            return toSeq(0..<currentCharas.len).filterIt(rolled in currentCharas[it].okPattern)
           echo "スキルを使うなら対応する番号を,終了するなら 9 を入力してください"
           for i in oks:
             echo i," : ",gotCharas[i].name
           try:
             let n = stdin.readLine().parseInt()
             if n != 9 and n notin oks : continue
-            if n == 9: return canGets.deduplicate
+            if n == 9: return toSeq(0..<currentCharas.len).filterIt(rolled in currentCharas[it].okPattern)
             echo "スキル適用後のダイスを入力してください."
             rolled = stdin.readLine().parseInt().splitAsDecimal().toKey()
             S = S and (not ^n)
