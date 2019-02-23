@@ -1,4 +1,4 @@
-import sequtils,strutils,sugar,math,strformat,tables,algorithm,intSets,random,times
+import sequtils,strutils,sugar,math,strformat,tables,algorithm,intSets,random,times,os
 import lib
 import skill
 import gahoudata
@@ -159,6 +159,43 @@ proc showCharas() =
         stdout.write (target.reduceGraph(skillUser.skillGraph)).int , "% : "
       echo skillUser.name
 
+proc outputResults(start:int = 0) =
+  let arith = charasByLevel[2][0]
+  var i = 0
+  for i3,lv3 in arith & charasByLevel[1]:
+    for i4,lv4 in arith & charasByLevel[2]:
+      for i5,lv5 in arith & charasByLevel[3]:
+        for i6,lv6 in arith & charasByLevel[4]:
+          for i7,lv7 in arith & charasByLevel[5]:
+            for i8,lv8 in arith & charasByLevel[6]:
+              i += 1
+              if i <= start : continue
+              var charas = newSeq[Chara]()
+              if i3 != 0 : charas &= lv3
+              if i4 != 0 : charas &= lv4
+              if i5 != 0 : charas &= lv5
+              if i6 != 0 : charas &= lv6
+              if i7 != 0 : charas &= lv7
+              if i8 != 0 : charas &= lv8
+              if charas.len == 0 : continue
+              let num = i-1
+              let path = "results/" & $num
+              os.createDir(path)
+              for t,target in allCharas:
+                if target.level < 3 or target.level > 8 : continue
+                let name = target.name
+                let (back,expected) = target.reduceGraphs(charas)
+                var ans = ""
+                let charaNames = ($charas.mapIt(it.name)).replace("@","")
+                ans &= name & "\n"
+                ans &= ($expected) & "\n"
+                ans &= charaNames & "\n"
+                ans &= ($back).replace("@","").replace("next: ","").replace("nextDice: ","").replace("val: ","").replace("(","[").replace(")","]")
+                echo num," ",name," ",expected," ",charaNames
+                let f = open(path & "/" & $t ,FileMode.fmWrite)
+                f.writeLine ans
+                f.close()
+outputResults()
 
 var R = random.initRand((cpuTime()*1000).int)
 proc adventure() =

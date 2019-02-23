@@ -1,4 +1,4 @@
-import sequtils,strutils,sugar,math,intsets,tables,algorithm
+import sequtils,strutils,sugar,math,intsets,tables,algorithm,strformat
 import lib
 import skill
 type Chara* = ref object
@@ -33,6 +33,9 @@ proc weightedSum(X:seq[int]): int =
 # # 以下はダイスが増えて計算時間が増えるので怖い(MaxDicesより大きくならない)
 # 美鈴 / 衣玖 / 小町 / 神奈子
 let notImplementedSkill* = rerollFunc(false)
+proc createResult(n:int):Chara =
+    newChara(fmt"写真作成 >= {n}点", 8,0, x => x.max() >= n or (x.max() >= n - 1 and x.sum() == n - 1),notImplementedSkill)
+
 let charasByLevel* = @[
   @[ # 2: System
     newChara("No Skill",2,0,x=>true,notImplementedSkill),
@@ -55,7 +58,7 @@ let charasByLevel* = @[
     newChara("美鈴", 4,1, x => (x[1] + x[3] + x[5] >= 4) or (x[2] + x[4] + x[6] >= 4),skillOfMeirin),
   ], @[ # 5
     newChara("イナバ", 5,0, x => x[2] == 0 and x[4] == 0 and x[6] == 0,changeFunc(it mod 2 == 1,@[2,4,6])),
-    # newChara("パチュリー", 5,0, x => x.filterIt(it >= 1).len >= 5,skillOfPache),
+    newChara("パチュリー", 5,0, x => x.filterIt(it >= 1).len >= 5,skillOfPache),
     newChara("咲夜", 5,0, x => x.weightedSum() <= 12,changeFunc(true,@[dices.min()])),
     newChara("早苗", 5,0, x => x.max() >= 4,changeFunc2(it1 == 5 and it2 == 5,(toSeq(1..6),toSeq(1..6)))),
     newChara("魔理沙", 5,0, x => x.weightedSum() >= 23,changeFunc(true,@[dices.max()])),
@@ -80,14 +83,18 @@ let charasByLevel* = @[
     newChara("紫", 8,0, x => x[2] == 0 and x[3] == 0 and x[4] == 0 and x[5] == 0,skillOfYukari),
     newChara("神奈子", 8,2, x => x.weightedSum() >= 46,skillOfKanako),
   ], @[ # 写真作成
-    newChara("同じ出目が3", 8,0, x => x.max() == 3,notImplementedSkill),
-    newChara("同じ出目が4", 8,0,x => x.max() == 4,notImplementedSkill),
-    newChara("同じ出目が5", 8,0, x => x.max() == 5,notImplementedSkill),
-    newChara("同じ出目が6", 8,0, x => x.max() == 6,notImplementedSkill),
-    newChara("同じ出目が7", 8,0, x => x.max() == 7,notImplementedSkill),
-    newChara("同じ出目が8", 8,0, x => x.max() == 8,notImplementedSkill),
-    newChara("同じ出目が9", 8,0, x => x.max() == 9,notImplementedSkill),
-    newChara("同じ出目が10", 8,0, x => x.max() == 10,notImplementedSkill),
+    createResult(3),
+    createResult(4),
+    createResult(5),
+    createResult(6),
+    createResult(7),
+    createResult(8),
+    createResult(9),
+    createResult(10),
+    createResult(11),
+    createResult(12),
+    createResult(13),
+    createResult(14),
   ]
 ]
 
