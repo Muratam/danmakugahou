@@ -5,6 +5,7 @@ import { computed, ref } from "vue";
 import { CHARA_BY_ID } from "../engine/charas";
 import type { ActionGroup, ActionOption } from "../engine/solver";
 import { fmtValue } from "../state";
+import { vCharaTip } from "../charaTip";
 import CharaIcon from "./CharaIcon.vue";
 
 const props = withDefaults(defineProps<{ groups: ActionGroup[]; pickable?: boolean; scale?: number; expandAll?: boolean }>(), { pickable: false, scale: 1, expandAll: false });
@@ -33,14 +34,23 @@ const unusable = computed(() => props.groups.filter((g) => g.options.length === 
       :class="{ best: best.value >= top - EPS }"
     >
       <div class="main">
-        <span class="who">
+        <span
+          v-if="g.who !== 'stop' && g.who !== 'help'"
+          v-chara-tip="g.who"
+          class="who"
+        >
           <CharaIcon
-            v-if="g.who !== 'stop' && g.who !== 'help'"
             :id="g.who"
             :size="28"
+            no-title
           />
+          <span class="who-name">{{ name(g.who) }}</span>
+        </span>
+        <span
+          v-else
+          class="who"
+        >
           <span
-            v-else
             class="glyph"
             aria-hidden="true"
           >{{ g.who === "stop" ? "■" : "↻" }}</span>

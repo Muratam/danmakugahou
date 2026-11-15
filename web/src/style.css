@@ -231,6 +231,15 @@ code {
   color: var(--ink-sub);
 }
 
+/* 撮影条件と能力の箱を長押しで出す所（src/charaTip.ts）: 長押しで文字の選択や端末のメニューを出さない */
+@media (hover: none) {
+  [data-chara-tip] {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

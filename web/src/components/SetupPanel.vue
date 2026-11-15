@@ -3,6 +3,7 @@
 import { computed } from "vue";
 import { CHARAS, CHARA_BY_ID, LEVELS } from "../engine/charas";
 import { MAX_HELD, MAX_HELP_UI, levelTargets, progress, ui } from "../state";
+import { vCharaTip } from "../charaTip";
 import CharaIcon from "./CharaIcon.vue";
 
 const byLevel = computed(() => LEVELS.map((lv) => ({ lv, charas: CHARAS.filter((c) => c.level === lv) })));
@@ -87,15 +88,16 @@ const heldCount = computed(() => ui.held.length);
           <button
             v-for="id in levelTargets"
             :key="id"
+            v-chara-tip="id"
             type="button"
             class="pick"
             :aria-pressed="!ui.excluded.includes(id)"
-            :title="`${CHARA_BY_ID.get(id)!.fullName}: ${CHARA_BY_ID.get(id)!.condText}`"
             @click="toggleTarget(id)"
           >
             <CharaIcon
               :id="id"
               :size="30"
+              no-title
             />
             <span class="pick-text">
               <span class="pick-name">{{ CHARA_BY_ID.get(id)!.name }}</span>
@@ -161,16 +163,17 @@ const heldCount = computed(() => ui.held.length);
           <button
             v-for="c in row.charas"
             :key="c.id"
+            v-chara-tip="c.id"
             type="button"
             class="held"
             :aria-pressed="ui.held.includes(c.id)"
-            :disabled="full && !ui.held.includes(c.id)"
-            :title="`${c.fullName}: ${c.skillText}`"
+            :aria-disabled="full && !ui.held.includes(c.id) ? 'true' : undefined"
             @click="toggleHeld(c.id)"
           >
             <CharaIcon
               :id="c.id"
               :size="34"
+              no-title
             />
             <span class="held-name">{{ c.name }}</span>
           </button>
@@ -364,7 +367,9 @@ const heldCount = computed(() => ui.held.length);
   font: inherit;
   font-size: 0.86rem;
 }
-button:disabled {
+/* 上限で選べないキャラも、乗せる・focus すると撮影条件と能力を出すので disabled にはしない */
+button:disabled,
+.held[aria-disabled="true"] {
   opacity: 0.4;
   cursor: default;
 }

@@ -6,7 +6,8 @@ import { CHARA_BY_ID } from "../engine/charas";
 import { imageMissing } from "../state";
 import files from "virtual:chara-images";
 
-const props = withDefaults(defineProps<{ id: string; size?: number }>(), { size: 36 });
+// noTitle: 乗せたときに撮影条件と能力の箱（v-chara-tip）を出す所では、名前だけの title を重ねて出さない
+const props = withDefaults(defineProps<{ id: string; size?: number; noTitle?: boolean }>(), { size: 36, noTitle: false });
 const ch = computed(() => CHARA_BY_ID.get(props.id));
 
 // 読めなかった画像は覚えておき、同じ id でもう一度取りにいかない（ページの間で共有）
@@ -35,7 +36,7 @@ const ink = computed(() => {
   <span
     class="chara"
     :style="{ width: `${size}px`, height: `${size}px`, '--ring': `var(--lv${ch?.level ?? 3})`, '--fill': ch?.color, '--ink-c': ink }"
-    :title="ch?.fullName"
+    :title="noTitle ? undefined : ch?.fullName"
   >
     <img
       v-if="!failed"

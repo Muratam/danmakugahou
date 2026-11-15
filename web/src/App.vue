@@ -2,6 +2,8 @@
 import { onBeforeUnmount, onMounted, ref } from "vue";
 import AboutView from "./components/AboutView.vue";
 import AppIcon from "./components/AppIcon.vue";
+import CharaListView from "./components/CharaListView.vue";
+import CharaTip from "./components/CharaTip.vue";
 import ExplorePanel from "./components/ExplorePanel.vue";
 import SetupPanel from "./components/SetupPanel.vue";
 import SummaryPanel from "./components/SummaryPanel.vue";
@@ -9,11 +11,12 @@ import TableView from "./components/TableView.vue";
 import TrialView from "./components/TrialView.vue";
 
 // ページ。URL の #/<ページ> と対応させる
-type Page = "analyze" | "trial" | "table" | "about";
+type Page = "analyze" | "trial" | "table" | "chara" | "about";
 const tabs: { id: Page; label: string }[] = [
   { id: "analyze", label: "解析" },
   { id: "trial", label: "試行" },
   { id: "table", label: "能力の表" },
+  { id: "chara", label: "キャラ" },
   { id: "about", label: "説明" },
 ];
 const page = ref<Page>("analyze");
@@ -124,8 +127,11 @@ onBeforeUnmount(() => window.removeEventListener("hashchange", parseHash));
       </div>
     </div>
     <TableView v-if="page === 'table'" />
+    <CharaListView v-if="page === 'chara'" />
     <AboutView v-if="page === 'about'" />
   </main>
+  <!-- 解析・試行でキャラのアイコン・名前に乗せたときの撮影条件と能力（src/charaTip.ts） -->
+  <CharaTip />
 </template>
 
 <style scoped>

@@ -1,8 +1,6 @@
 <script setup lang="ts">
 // 説明: 使い方・計算のしかた・ルールの解釈（カードの文面どおり）
-import { CHARAS, LEVELS } from "../engine/charas";
 import { RULE_NOTES } from "../rulesNotes";
-import CharaIcon from "./CharaIcon.vue";
 </script>
 
 <template>
@@ -20,6 +18,7 @@ import CharaIcon from "./CharaIcon.vue";
         <li><strong>解析</strong>: 左で条件（撮影か編集か・レベル・狙う被写体・能力を使えるキャラ・ヘルプの枚数）を選ぶと、最善に操作したときの成功確率（編集は評価点の期待値）が出ます。「状態を調べる」にダイスの目と、まだ使える能力を入れると、各行動を選んだときの値が出ます。</li>
         <li><strong>試行</strong>: 実際にダイスを振り、行動を 1 手ずつ選んで進めます。どの行も「その手を選んでから最善に進めたときの値」です。「最善手で 1 手進める」で最善の手を選びます。</li>
         <li><strong>能力の表</strong>: 能力 1 つを 1 回だけ使えるときに、各レベルの被写体を撮れる確率の一覧です。</li>
+        <li><strong>キャラ</strong>: 全員の撮影条件と能力の一覧です。解析と試行の画面でも、キャラのアイコンや名前にマウスを乗せる（スマホは長押し）と出ます。</li>
       </ul>
 
       <h3>計算のしかた</h3>
@@ -65,43 +64,9 @@ import CharaIcon from "./CharaIcon.vue";
         </table>
       </div>
 
-      <h3>キャラの一覧</h3>
-      <div
-        v-for="lv in LEVELS"
-        :key="lv"
-        class="lv-block"
-      >
-        <h4 :style="{ color: `var(--lv${lv})` }">
-          レベル {{ lv }}
-        </h4>
-        <ul class="charas">
-          <li
-            v-for="c in CHARAS.filter((x) => x.level === lv)"
-            :key="c.id"
-          >
-            <CharaIcon
-              :id="c.id"
-              :size="32"
-            />
-            <div>
-              <div class="c-name">
-                {{ c.fullName }}
-              </div>
-              <div class="c-line">
-                <span class="quiet">撮影条件</span> {{ c.condText }}
-              </div>
-              <div class="c-line">
-                <span class="quiet">能力</span> {{ c.skillText }}
-              </div>
-            </div>
-          </li>
-        </ul>
-      </div>
-
       <h3>出典</h3>
       <ul>
         <li>ルールとカードの文面: 東方弾幕画報の配布ページ（ルールと印刷用のカードシート）</li>
-        <li>元の解析: Muratam/danmakugahou の Nim のプログラム（2019 年）。<code>danmakugahou.js</code> の表も参考にしました</li>
         <li>東方 Project は上海アリス幻樂団の作品です。キャラのアイコンは AI（Gemini）で生成した二次創作の絵です。<code>chara/</code> の画像を置き換えると差し替わります</li>
       </ul>
     </div>
@@ -109,10 +74,6 @@ import CharaIcon from "./CharaIcon.vue";
 </template>
 
 <style scoped>
-.prose h4 {
-  margin: 8px 0 4px;
-  font-size: 0.84rem;
-}
 .scroll {
   overflow-x: auto;
 }
@@ -133,26 +94,5 @@ import CharaIcon from "./CharaIcon.vue";
 }
 .notes tbody th {
   white-space: nowrap;
-}
-.charas {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 10px 16px;
-  padding: 0 !important;
-  list-style: none;
-}
-.charas li {
-  display: grid;
-  grid-template-columns: 32px 1fr;
-  gap: 10px;
-  margin: 0 !important;
-}
-.c-name {
-  font-weight: 650;
-  font-size: 0.86rem;
-}
-.c-line {
-  font-size: 0.78rem;
-  line-height: 1.5;
 }
 </style>

@@ -6,6 +6,7 @@ import { CHARA_BY_ID } from "../engine/charas";
 import type { StateAnswer } from "../engine/session";
 import { fmtValue, isEdit, rollDie, setup, summary, ui } from "../state";
 import ActionList from "./ActionList.vue";
+import { vCharaTip } from "../charaTip";
 import CharaIcon from "./CharaIcon.vue";
 import DiceEditor from "./DiceEditor.vue";
 
@@ -108,6 +109,7 @@ const scale = computed(() => (isEdit.value ? Math.max(1, ...(answer.value?.group
           <button
             v-for="id in setup.held"
             :key="id"
+            v-chara-tip="id"
             type="button"
             class="chip"
             :aria-pressed="!used.includes(id)"
@@ -116,6 +118,7 @@ const scale = computed(() => (isEdit.value ? Math.max(1, ...(answer.value?.group
             <CharaIcon
               :id="id"
               :size="22"
+              no-title
             />
             {{ CHARA_BY_ID.get(id)!.name }}
           </button>
