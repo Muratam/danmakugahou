@@ -132,12 +132,12 @@ const unusable = computed(() => props.groups.filter((g) => g.options.length === 
   gap: 6px;
   min-width: 0;
 }
+/* 名前は切らずに折り返す（文字を大きくしている端末でも全文を出す） */
 .who-name {
-  overflow: hidden;
+  min-width: 0;
   font-size: 0.82rem;
   font-weight: 600;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
 }
 .glyph {
   display: inline-flex;
