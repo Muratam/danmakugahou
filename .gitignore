@@ -1,3 +1,14 @@
 *.js
+!web/**/*.js
 nimcache/
 profile_results.txt
+
+# Web 版（web/）
+web/node_modules/
+web/dist/
+
+# ラボの bind 先（scripts/deploy-lab.sh が .env.example から作る）
+.env
+
+# Claude Code の作業用 worktree
+.claude/worktrees/
