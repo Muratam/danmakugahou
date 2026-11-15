@@ -102,7 +102,7 @@ import CharaIcon from "./CharaIcon.vue";
       <ul>
         <li>ルールとカードの文面: 東方弾幕画報の配布ページ（ルールと印刷用のカードシート）</li>
         <li>元の解析: Muratam/danmakugahou の Nim のプログラム（2019 年）。<code>danmakugahou.js</code> の表も参考にしました</li>
-        <li>東方 Project は上海アリス幻樂団の作品です。キャラのアイコンは名前の頭の文字の仮のもので、<code>chara/</code> に画像を置くと差し替わります</li>
+        <li>東方 Project は上海アリス幻樂団の作品です。キャラのアイコンは AI（Gemini）で生成した二次創作の絵です。<code>chara/</code> の画像を置き換えると差し替わります</li>
       </ul>
     </div>
   </section>
