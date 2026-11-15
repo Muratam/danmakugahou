@@ -300,12 +300,11 @@ const rulesList: Rules[] = ["card", "nim", "nim2019"];
   font-size: 0.84rem;
   font-weight: 600;
 }
+/* 条件の文は折り返して全文を出す（スマホの幅で切れないように） */
 .pick-sub {
-  overflow: hidden;
   font-size: 0.72rem;
   color: var(--ink-soft);
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
 }
 .stepper {
   display: flex;
@@ -339,6 +338,7 @@ const rulesList: Rules[] = ["card", "nim", "nim2019"];
 }
 .held {
   display: grid;
+  align-content: start;
   justify-items: center;
   gap: 1px;
   width: 52px;
@@ -363,12 +363,12 @@ const rulesList: Rules[] = ["card", "nim", "nim2019"];
   opacity: 1;
   filter: none;
 }
+/* 長い名前（フランドール）は折り返して全文を出す */
 .held-name {
   max-width: 50px;
-  overflow: hidden;
   font-size: 0.66rem;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  text-align: center;
+  overflow-wrap: anywhere;
 }
 .select {
   min-height: 38px;
