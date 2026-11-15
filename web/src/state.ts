@@ -1,7 +1,7 @@
 // 画面で共有する設定（解析と試行で同じものを使う）と、DP の結果。
 import { computed, reactive, ref, watch } from "vue";
 import { solve } from "./client";
-import { CHARAS, type Rules } from "./engine/charas";
+import { CHARAS } from "./engine/charas";
 import type { Setup, Summary } from "./engine/session";
 import { parseSetup, setupKey, type UiSetup } from "./setupStore";
 
@@ -39,7 +39,7 @@ export const levelTargets = computed(() => CHARAS.filter((c) => c.level === ui.l
 export const targets = computed(() => levelTargets.value.filter((id) => !ui.excluded.includes(id)));
 
 export const setup = computed<Setup>(() => ({
-  rules: ui.rules,
+  rules: "card",
   mode: ui.mode,
   level: ui.mode === "edit" ? 8 : ui.level,
   targets: ui.mode === "edit" ? [] : targets.value,
@@ -103,12 +103,6 @@ export function fmtValue(v: number, edit = isEdit.value): string {
   if (p > 0 && p < 0.005) return "<0.01%";
   return `${p.toFixed(2)}%`;
 }
-
-export const RULE_LABELS: Record<Rules, string> = {
-  card: "カードの文面どおり",
-  nim: "元の Nim と同じ",
-  nim2019: "2019 年の版（per.txt）",
-};
 
 /** 試行・解析で使う乱数（1〜6） */
 export const rollDie = () => 1 + Math.floor(Math.random() * 6);

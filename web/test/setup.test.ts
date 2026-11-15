@@ -30,6 +30,14 @@ test("held は知っている id だけ・重複なし・上限まで", () => {
   expect(parseSetup(JSON.stringify({ excluded: ["x", "cirno"] })).excluded).toEqual(["cirno"]);
 });
 
+test("以前の版で保存したルール（nim・nim2019）は読まない（画面はカードの文面どおりだけ）", () => {
+  for (const rules of ["nim", "nim2019", "card"]) {
+    const r = parseSetup(JSON.stringify({ ...DEFAULT_SETUP, rules, level: 7 }));
+    expect(r).toEqual({ ...DEFAULT_SETUP, level: 7 });
+    expect(r).not.toHaveProperty("rules");
+  }
+});
+
 test("既定の値を書き換えても次の読み込みに残らない", () => {
   const a = parseSetup(null);
   a.held.push("reimu");

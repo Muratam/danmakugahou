@@ -1,15 +1,13 @@
 <script setup lang="ts">
-// 能力の表: 能力 1 つ（1 回）だけで各被写体を撮れる確率（元のリポジトリの per.txt と同じ形を、小数まで出したもの）
+// 能力の表: 能力 1 つ（1 回）だけで各被写体を撮れる確率（ルールはカードの文面どおり）
 import { computed, ref, watch } from "vue";
 import { skillTable } from "../client";
 import type { SkillTableRow } from "../engine/api";
-import { CHARAS, CHARA_BY_ID, LEVELS, type Rules } from "../engine/charas";
-import { RULE_LABELS } from "../state";
+import { CHARAS, CHARA_BY_ID, LEVELS } from "../engine/charas";
 import CharaIcon from "./CharaIcon.vue";
 
 const level = ref(5);
 const help = ref(0);
-const rules = ref<Rules>("card");
 const rows = ref<SkillTableRow[] | null>(null);
 const busy = ref(false);
 const err = ref("");
@@ -18,13 +16,13 @@ const sortKey = ref<"order" | "any" | "mean">("any");
 const targets = computed(() => CHARAS.filter((c) => c.level === level.value));
 let seq = 0;
 watch(
-  [level, help, rules],
+  [level, help],
   async () => {
     const my = ++seq;
     busy.value = true;
     err.value = "";
     try {
-      const r = await skillTable(rules.value, level.value, help.value);
+      const r = await skillTable("card", level.value, help.value);
       if (my === seq) rows.value = r;
     } catch (e) {
       if (my === seq) err.value = e instanceof Error ? e.message : String(e);
@@ -44,7 +42,6 @@ const sorted = computed(() => {
 const base = computed(() => rows.value?.find((r) => r.user === ""));
 const pct = (p: number) => (p * 100).toFixed(1);
 const heat = (p: number) => `rgba(71, 200, 230, ${(0.04 + p * 0.4).toFixed(3)})`;
-const rulesList: Rules[] = ["card", "nim", "nim2019"];
 </script>
 
 <template>
@@ -87,18 +84,6 @@ const rulesList: Rules[] = ["card", "nim", "nim2019"];
           <option :value="2">2 枚</option>
         </select>
       </label>
-      <label class="ctl">ルール
-        <select
-          v-model="rules"
-          class="select"
-        >
-          <option
-            v-for="r in rulesList"
-            :key="r"
-            :value="r"
-          >{{ RULE_LABELS[r] }}</option>
-        </select>
-      </label>
       <label class="ctl">並び
         <select
           v-model="sortKey"
@@ -111,7 +96,7 @@ const rulesList: Rules[] = ["card", "nim", "nim2019"];
       </label>
     </div>
     <p class="quiet small">
-      行 = 能力を 1 回だけ使えるキャラ、列 = レベル {{ level }} の各被写体を狙ったときの成功確率（%）。「いずれか」は振った後に撮れる人を選ぶとき（通常の撮影）。ルールを「2019 年の版」にすると per.txt と同じ数（per.txt は整数に切り捨て）になります。
+      行 = 能力を 1 回だけ使えるキャラ、列 = レベル {{ level }} の各被写体を狙ったときの成功確率（%）。「いずれか」は振った後に撮れる人を選ぶとき（通常の撮影）。
     </p>
     <p
       v-if="err"
