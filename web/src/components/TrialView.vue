@@ -7,6 +7,7 @@ import { fmtValue, isEdit, rollDie, setup, solveError, summary, summaryKey } fro
 import { setupKey } from "../setupStore";
 import { createTrial } from "../trial";
 import ActionList from "./ActionList.vue";
+import { vCharaTip } from "../charaTip";
 import CharaIcon from "./CharaIcon.vue";
 import DieFace from "./DieFace.vue";
 
@@ -115,7 +116,9 @@ const scale = computed(() => (isEdit.value ? Math.max(1, ...(answer.value?.group
             <CharaIcon
               v-if="CHARA_BY_ID.has(opsWho)"
               :id="opsWho"
+              v-chara-tip="opsWho"
               :size="24"
+              no-title
             />
             {{ pendingText }}
           </p>

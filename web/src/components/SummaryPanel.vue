@@ -3,6 +3,7 @@
 import { computed } from "vue";
 import { CHARA_BY_ID } from "../engine/charas";
 import { fmtValue, isEdit, progress, setup, solveError, summary, ui } from "../state";
+import { vCharaTip } from "../charaTip";
 import CharaIcon from "./CharaIcon.vue";
 
 const sorted = computed(() => [...(summary.value?.perTarget ?? [])].sort((a, b) => b.p - a.p));
@@ -71,10 +72,12 @@ const fmtMs = (ms: number) => (ms < 1000 ? `${Math.max(1, Math.round(ms))} ms` :
         <li
           v-for="t in sorted"
           :key="t.id"
+          v-chara-tip="t.id"
         >
           <CharaIcon
             :id="t.id"
             :size="26"
+            no-title
           />
           <span class="t-name">{{ CHARA_BY_ID.get(t.id)!.name }}<span class="quiet t-cond">{{ CHARA_BY_ID.get(t.id)!.condText }}</span></span>
           <span class="t-val">{{ fmtValue(t.p) }}</span>
