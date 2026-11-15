@@ -3,8 +3,19 @@ import { CHARAS, CHARA_BY_ID, editScore, type Rules } from "./charas";
 import { N, cnt } from "./multiset";
 import { LayerDP } from "./solver";
 
+const okCache = new Map<string, Uint8Array>();
+
 /** 撮影条件の表（どれか 1 人でも満たせば 1） */
 export function okTable(rules: Rules, targetIds: string[]): Uint8Array {
+  const key = `${rules}|${[...targetIds].sort().join(",")}`;
+  const hit = okCache.get(key);
+  if (hit) return hit;
+  const ok = makeOkTable(rules, targetIds);
+  okCache.set(key, ok);
+  return ok;
+}
+
+function makeOkTable(rules: Rules, targetIds: string[]): Uint8Array {
   const conds = targetIds.map((id) => {
     const c = CHARA_BY_ID.get(id);
     if (!c) throw new Error(`unknown chara ${id}`);

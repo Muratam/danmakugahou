@@ -224,7 +224,7 @@ export class LayerDP {
   /** 状態 (U, h, i) で取れる行動と、それぞれの値（大きい順） */
   actions(U: number, h: number, i: number): ActionGroup[] {
     const groups: ActionGroup[] = [];
-    groups.push({ who: "stop", options: [{ kind: "", removes: [], adds: [], label: "ここで確定", value: this.goal(U, i) }] });
+    groups.push({ who: "stop", options: [{ kind: "", removes: [], adds: [], label: "ここで確定", value: this.goal(U, i), childU: U, childH: h }] });
     this.charas.forEach((ch, k) => {
       if (!(U & (1 << k))) return;
       const child = U & ~(1 << k);
