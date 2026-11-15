@@ -65,6 +65,11 @@ export function compile(ch: Chara, rules: Rules, s: number): Compiled {
 
 export type GoalFn = (U: number, i: number) => number;
 
+/** 能力を使えるキャラの人数の上限（層は 2^n 個。12 人・ヘルプ 2 枚で約 14 秒・約 140 MB。これを超えると Worker のメモリが足りなくなる） */
+export const MAX_CHARAS = 12;
+/** ヘルプの枚数の上限 */
+export const MAX_HELP = 6;
+
 export interface SolveStats {
   layers: number;
   states: number;
@@ -87,6 +92,10 @@ export class LayerDP {
   readonly anyStart: boolean;
 
   constructor(rules: Rules, L: number, charaIds: string[], H: number, goal: GoalFn, anyStart = false) {
+    if (!Number.isInteger(L) || L < 0 || L > MAXD) throw new Error(`ダイスの数が範囲外: ${L}`);
+    if (!Number.isInteger(H) || H < 0 || H > MAX_HELP) throw new Error(`ヘルプの枚数が範囲外: ${H}`);
+    if (charaIds.length > MAX_CHARAS) throw new Error(`能力を使えるキャラは ${MAX_CHARAS} 人まで（${charaIds.length} 人）`);
+    if (new Set(charaIds).size !== charaIds.length) throw new Error("同じキャラが 2 回入っている");
     this.rules = rules;
     this.anyStart = anyStart;
     this.L = L;

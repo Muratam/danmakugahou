@@ -1,167 +1,34 @@
 <script setup lang="ts">
-// 試行: ダイスを振り、その都度の確率（期待値）を見ながら 1 手ずつ進める。振る手順はここで乱数を使う
-import { computed, ref, watch } from "vue";
+// 試行: ダイスを振り、その都度の確率（期待値）を見ながら 1 手ずつ進める。進め方は src/trial.ts（始めたときの設定のコピーで問い合わせる）
+import { computed, toRefs, watch } from "vue";
 import { query } from "../client";
-import { CHARA_BY_ID, editScore } from "../engine/charas";
-import type { StateAnswer } from "../engine/session";
-import type { ActionOption } from "../engine/solver";
-import { fmtValue, isEdit, rollDie, setup, summary, summaryKey } from "../state";
+import { CHARA_BY_ID } from "../engine/charas";
+import { fmtValue, isEdit, rollDie, setup, solveError, summary, summaryKey } from "../state";
+import { setupKey } from "../setupStore";
+import { createTrial } from "../trial";
 import ActionList from "./ActionList.vue";
 import CharaIcon from "./CharaIcon.vue";
 import DieFace from "./DieFace.vue";
 
-interface Die {
-  v: number;
-  fresh: boolean;
-}
-interface LogLine {
-  who: string;
-  text: string;
-  value?: number;
+const t = createTrial({ query, roll: rollDie });
+const { playing, phase, dice, ops, opsWho, answer, log, result, busy, stopped } = toRefs(t.state);
+const { pick, pickPending, auto } = t;
+
+/** 今の設定で計算が済んでいるか（被写体 0 人・計算の失敗・計算中は始めない） */
+const ready = computed(() => !!summary.value && !solveError.value && summaryKey.value === setupKey(setup.value));
+// 設定が変わった・計算できなくなったら止める
+watch([() => setupKey(setup.value), solveError], () => t.sync(solveError.value ? null : setup.value));
+
+function start() {
+  if (ready.value) t.start(setup.value);
 }
 
-const playing = ref(false);
-const phase = ref<"front" | "back">("front");
-const dice = ref<Die[]>([]);
-const U = ref(0);
-const h = ref(0);
-const ops = ref("");
-const opsWho = ref("");
-const answer = ref<StateAnswer | null>(null);
-const log = ref<LogLine[]>([]);
-const result = ref<{ ok: boolean; text: string } | null>(null);
-const frontScore = ref(0);
-const busy = ref(false);
-/** この試行を始めたときの設定（途中で設定が変わったら止める） */
-const startedKey = ref("");
-
-const values = () => dice.value.map((d) => d.v);
-const sortDice = (ds: Die[]) => ds.sort((a, b) => a.v - b.v);
-const counts7 = (vs: number[]) => {
-  const c = [0, 0, 0, 0, 0, 0, 0];
-  for (const v of vs) c[v]++;
-  return c;
-};
 const whoName = (who: string) => (who === "help" ? "ヘルプ" : who === "stop" ? "確定" : who === "roll" ? "振る" : CHARA_BY_ID.get(who)?.name ?? who);
-
-function freshRoll(n: number): Die[] {
-  return sortDice(Array.from({ length: n }, () => ({ v: rollDie(), fresh: true })));
-}
-
-async function refresh() {
-  busy.value = true;
-  try {
-    answer.value = await query(setup.value, { phase: phase.value, U: U.value, h: h.value, dice: values(), ops: ops.value });
-  } finally {
-    busy.value = false;
-  }
-}
-
-async function start() {
-  if (!summary.value) return;
-  startedKey.value = summaryKey.value;
-  playing.value = true;
-  result.value = null;
-  phase.value = "front";
-  U.value = (1 << setup.value.held.length) - 1;
-  h.value = setup.value.help;
-  ops.value = "";
-  frontScore.value = 0;
-  dice.value = freshRoll(setup.value.level);
-  log.value = [{ who: "roll", text: `${setup.value.level} 個振った: ${values().join(" ")}` }];
-  await refresh();
-  log.value[0].value = answer.value?.value;
-}
-
-function applyMove(o: ActionOption) {
-  const ds = dice.value.map((d) => ({ v: d.v, fresh: false }));
-  for (const r of o.removes) {
-    const k = ds.findIndex((d) => d.v === r);
-    if (k >= 0) ds.splice(k, 1);
-  }
-  for (const a of o.adds) ds.push({ v: a, fresh: true });
-  dice.value = sortDice(ds);
-}
-
-/** 能力の途中の手順のうち、振るもの（R）をここで振る */
-async function runOps() {
-  const rolled: number[] = [];
-  while (ops.value[0] === "R") {
-    const v = rollDie();
-    rolled.push(v);
-    dice.value = sortDice([...dice.value, { v, fresh: true }]);
-    ops.value = ops.value.slice(1);
-  }
-  await refresh();
-  if (rolled.length) log.value.push({ who: opsWho.value, text: `振った目: ${rolled.join(" ")} → ${values().join(" ")}`, value: answer.value?.value });
-}
-
-async function pick(o: ActionOption, who: string) {
-  if (busy.value || result.value) return;
-  if (who === "stop") return finish();
-  applyMove(o);
-  U.value = o.childU;
-  h.value = o.childH;
-  ops.value = o.kind;
-  opsWho.value = who;
-  log.value.push({ who, text: `${o.label}${o.kind ? "" : ` → ${values().join(" ")}`}`, value: o.kind ? undefined : o.value });
-  await runOps();
-}
-
-async function pickPending(o: ActionOption) {
-  if (busy.value) return;
-  applyMove(o);
-  ops.value = o.kind;
-  log.value.push({ who: opsWho.value, text: `${o.label} → ${values().join(" ")}`, value: o.value });
-  await runOps();
-}
-
-async function finish() {
-  const vs = values();
-  if (!isEdit.value) {
-    const got = setup.value.targets.filter((id) => CHARA_BY_ID.get(id)!.cond(counts7(vs), setup.value.rules));
-    result.value = got.length
-      ? { ok: true, text: `撮影成功: ${got.map((id) => CHARA_BY_ID.get(id)!.name).join("・")} の条件を満たしています` }
-      : { ok: false, text: "撮影失敗: どの被写体の条件も満たしていません" };
-    log.value.push({ who: "stop", text: `確定: ${vs.join(" ")}` });
-    return;
-  }
-  const score = editScore(counts7(vs));
-  if (phase.value === "front") {
-    frontScore.value = score;
-    log.value.push({ who: "stop", text: `一面を確定: ${vs.join(" ")} → ${score} 点` });
-    phase.value = "back";
-    ops.value = "";
-    dice.value = freshRoll(8);
-    await refresh();
-    log.value.push({ who: "roll", text: `二面: 8 個振った: ${values().join(" ")}`, value: answer.value?.value });
-    return;
-  }
-  log.value.push({ who: "stop", text: `二面を確定: ${vs.join(" ")} → ${score} 点` });
-  result.value = { ok: true, text: `評価点: 一面 ${frontScore.value} 点 + 二面 ${score} 点 = ${frontScore.value + score} 点` };
-}
-
-/** 最善手を 1 つ進める（同じ値なら確定を選ぶ） */
-async function auto() {
-  const a = answer.value;
-  if (!a || result.value) return;
-  if (a.pending.length) return pickPending(a.pending[0]);
-  let best: { o: ActionOption; who: string } | null = null;
-  for (const g of a.groups)
-    for (const o of g.options.slice(0, 1))
-      if (!best || o.value > best.o.value + 1e-12) best = { o, who: g.who };
-  if (best) await pick(best.o, best.who);
-}
-
 const pendingText = computed(() => {
   if (!ops.value) return "";
   const n = ops.value.length;
   if (ops.value[0] === "C") return `振った目を見て、ダイス ${n} 個まで好きな目に変えられます（1 個ずつ選びます）`;
   return `好きな目のダイスを足します（あと ${n} 個）`;
-});
-const stale = computed(() => playing.value && startedKey.value !== summaryKey.value);
-watch(stale, (s) => {
-  if (s) playing.value = false;
 });
 const shownValue = computed(() => (answer.value && !result.value ? answer.value.value : null));
 const scale = computed(() => (isEdit.value ? Math.max(1, ...(answer.value?.groups.flatMap((g) => g.options.map((o) => o.value)) ?? [1]), ...(answer.value?.pending.map((o) => o.value) ?? [])) : 1));
@@ -187,7 +54,7 @@ const scale = computed(() => (isEdit.value ? Math.max(1, ...(answer.value?.group
         <button
           type="button"
           class="btn btn-primary"
-          :disabled="!summary"
+          :disabled="!ready"
           @click="start"
         >
           {{ playing ? "最初から振り直す" : `${setup.level} 個振って始める` }}
@@ -195,6 +62,13 @@ const scale = computed(() => (isEdit.value ? Math.max(1, ...(answer.value?.group
       </div>
     </div>
 
+    <p
+      v-if="!playing && stopped"
+      class="stopped"
+      role="status"
+    >
+      {{ stopped }}
+    </p>
     <p
       v-if="!playing"
       class="quiet"
@@ -283,6 +157,11 @@ const scale = computed(() => (isEdit.value ? Math.max(1, ...(answer.value?.group
 </template>
 
 <style scoped>
+.stopped {
+  margin-bottom: 8px;
+  color: var(--lv7);
+  font-size: 0.86rem;
+}
 .tools {
   display: flex;
   flex-wrap: wrap;

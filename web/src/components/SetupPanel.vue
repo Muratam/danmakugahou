@@ -2,7 +2,7 @@
 // 条件: 撮影か編集か・レベル・狙う被写体・能力を使えるキャラ・ヘルプ・ルール
 import { computed } from "vue";
 import { CHARAS, CHARA_BY_ID, LEVELS, type Rules } from "../engine/charas";
-import { RULE_LABELS, levelTargets, progress, ui } from "../state";
+import { MAX_HELD, MAX_HELP_UI, RULE_LABELS, levelTargets, progress, ui } from "../state";
 import CharaIcon from "./CharaIcon.vue";
 
 const byLevel = computed(() => LEVELS.map((lv) => ({ lv, charas: CHARAS.filter((c) => c.level === lv) })));
@@ -10,8 +10,9 @@ const byLevel = computed(() => LEVELS.map((lv) => ({ lv, charas: CHARAS.filter((
 function toggleHeld(id: string) {
   const i = ui.held.indexOf(id);
   if (i >= 0) ui.held.splice(i, 1);
-  else ui.held.push(id);
+  else if (ui.held.length < MAX_HELD) ui.held.push(id);
 }
+const full = computed(() => ui.held.length >= MAX_HELD);
 function toggleTarget(id: string) {
   const i = ui.excluded.indexOf(id);
   if (i >= 0) ui.excluded.splice(i, 1);
@@ -131,7 +132,7 @@ const rulesList: Rules[] = ["card", "nim", "nim2019"];
             type="button"
             class="btn"
             aria-label="増やす"
-            :disabled="ui.help >= 6"
+            :disabled="ui.help >= MAX_HELP_UI"
             @click="ui.help++"
           >
             ＋
@@ -147,7 +148,7 @@ const rulesList: Rules[] = ["card", "nim", "nim2019"];
     </p>
 
     <div class="field">
-      <span class="field-label">能力を使えるキャラ（撮影に成功した被写体） {{ heldCount }} 人</span>
+      <span class="field-label">能力を使えるキャラ（撮影に成功した被写体） {{ heldCount }} / {{ MAX_HELD }} 人</span>
       <div
         v-for="row in byLevel"
         :key="row.lv"
@@ -164,6 +165,7 @@ const rulesList: Rules[] = ["card", "nim", "nim2019"];
             type="button"
             class="held"
             :aria-pressed="ui.held.includes(c.id)"
+            :disabled="full && !ui.held.includes(c.id)"
             :title="`${c.fullName}: ${c.skillText}`"
             @click="toggleHeld(c.id)"
           >
@@ -176,10 +178,10 @@ const rulesList: Rules[] = ["card", "nim", "nim2019"];
         </div>
       </div>
       <p
-        v-if="heldCount > 10"
+        v-if="full"
         class="warn small"
       >
-        {{ heldCount }} 人だと計算に数秒〜数十秒かかり、メモリも多く使います。
+        選べるのは {{ MAX_HELD }} 人までです（計算の表が 2^人数 個に増え、時間とメモリが足りなくなるため）。
       </p>
     </div>
 

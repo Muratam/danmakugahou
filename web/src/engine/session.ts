@@ -2,6 +2,7 @@
 import { scoreTable, solveCapture, solveEdit, singleSkillTable, type EditSolution, type SkillTableRow } from "./api";
 import { CHARAS, type Rules } from "./charas";
 import { indexOfDice, off, rollProb } from "./multiset";
+import { setupKey } from "../setupStore";
 import { LayerDP, type ActionGroup, type ActionOption } from "./solver";
 
 export interface Setup {
@@ -47,7 +48,6 @@ export interface StateAnswer {
   pending: ActionOption[];
 }
 
-export const setupKey = (s: Setup) => JSON.stringify([s.rules, s.mode, s.level, [...s.targets].sort(), s.held, s.help]);
 
 class Solved {
   capture?: LayerDP;

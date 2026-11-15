@@ -1,37 +1,20 @@
 // 画面で共有する設定（解析と試行で同じものを使う）と、DP の結果。
 import { computed, reactive, ref, watch } from "vue";
 import { solve } from "./client";
-import { CHARAS, CHARA_BY_ID, type Rules } from "./engine/charas";
+import { CHARAS, type Rules } from "./engine/charas";
 import type { Setup, Summary } from "./engine/session";
+import { parseSetup, setupKey, type UiSetup } from "./setupStore";
 
-export interface UiSetup {
-  rules: Rules;
-  mode: "capture" | "edit";
-  level: number;
-  /** 狙わない被写体（そのレベルの残りから外す。既定は全員を狙う） */
-  excluded: string[];
-  held: string[];
-  help: number;
-}
+export type { UiSetup } from "./setupStore";
+export { MAX_HELD, MAX_HELP_UI } from "./setupStore";
 
 const STORE = "danmakugaho:setup:v1";
 
 function load(): UiSetup {
-  const d: UiSetup = { rules: "card", mode: "capture", level: 6, excluded: [], held: ["chen", "alice", "sakuya"], help: 1 };
   try {
-    const raw = localStorage.getItem(STORE);
-    if (!raw) return d;
-    const x = JSON.parse(raw) as Partial<UiSetup>;
-    return {
-      rules: x.rules === "nim" || x.rules === "nim2019" ? x.rules : "card",
-      mode: x.mode === "edit" ? "edit" : "capture",
-      level: typeof x.level === "number" && x.level >= 3 && x.level <= 8 ? x.level : d.level,
-      excluded: Array.isArray(x.excluded) ? x.excluded.filter((id) => CHARA_BY_ID.has(id)) : [],
-      held: Array.isArray(x.held) ? x.held.filter((id) => CHARA_BY_ID.has(id)) : d.held,
-      help: typeof x.help === "number" && x.help >= 0 && x.help <= 6 ? x.help : d.help,
-    };
+    return parseSetup(localStorage.getItem(STORE));
   } catch {
-    return d;
+    return parseSetup(null);
   }
 }
 
@@ -86,6 +69,7 @@ async function run(s: Setup) {
   solveError.value = "";
   if (s.mode === "capture" && s.targets.length === 0) {
     summary.value = null;
+    summaryKey.value = "";
     progress.value = null;
     return;
   }
@@ -96,9 +80,13 @@ async function run(s: Setup) {
     });
     if (my !== reqSeq) return;
     summary.value = r;
-    summaryKey.value = JSON.stringify(s);
+    summaryKey.value = setupKey(s);
   } catch (e) {
-    if (my === reqSeq) solveError.value = e instanceof Error ? e.message : String(e);
+    if (my === reqSeq) {
+      solveError.value = e instanceof Error ? e.message : String(e);
+      summary.value = null;
+      summaryKey.value = "";
+    }
   } finally {
     if (my === reqSeq) progress.value = null;
   }

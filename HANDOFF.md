@@ -16,7 +16,7 @@ URL のパスは `/danmakugaho/`（リポジトリ名と綴りが違う。`web/v
 ## 2. アプリ
 - **構成**: 元の Nim のプログラムはルート（`*.nim`・`per.txt`。そのまま。配信には使わない）。Web 版は `web/`（Vue 3 + Vite + TypeScript の静的サイト。Muratam/stegano_pixelart と同じ形）。
   - `web/src/engine/`: 計算。`multiset.ts`（0〜13 個の多重集合 27,132 通りの番号と、1 個足す・除く の表）・`table.ts`（値の表と演算 R〔1 個振って足す期待値〕・A〔好きな目を足す最大〕・C〔1 個を好きな目に変える最大〕）・`charas.ts`（36 人の撮影条件と能力の選択肢。ルール card・nim・nim2019）・`solver.ts`（層 DP と、状態ごとの行動の値）・`api.ts`（撮影・編集・能力の表）・`session.ts`（Worker の中で解いた結果を持つ）
-  - 画面: `web/src/App.vue`（タブ: 解析・試行・能力の表・説明）、`components/`。共有の設定は `state.ts`（localStorage に保存）。重い処理は Web Worker（`web/src/worker.ts`、呼ぶ側は `client.ts`）
+  - 画面: `web/src/App.vue`（タブ: 解析・試行・能力の表・説明）、`components/`。共有の設定は `state.ts`（localStorage に保存。読み込みと検査は `setupStore.ts`。能力を使えるキャラは 10 人まで〔`MAX_HELD`。計算の側は 12 人まで: `solver.ts` の `MAX_CHARAS`〕、レベル・ヘルプは整数で範囲内でなければ既定に戻す）。試行の進め方は `trial.ts`（始めたときの設定のコピーで問い合わせ、設定が変わったら止める）。重い処理は Web Worker（`web/src/worker.ts`、呼ぶ側は `client.ts`）
   - キャラの画像: `web/public/chara/<id>.png`（一覧・推奨サイズは `web/public/chara/README.md`）。ビルドのときに一覧を読む（`vite.config.ts` の `charaImages`）。無いキャラはキャラの色の丸に頭の文字
   - 配信は nginx のコンテナ（`Dockerfile`・`docker/nginx.conf`。uid 10001、読み取り専用、JS・CSS・HTML はビルド時に gzip、`/danmakugaho/assets/` は immutable）。サーバー側の処理・DB・シークレットは無い
 - **計算**: 層 = (まだ使っていない能力の組 U, 残りのヘルプの枚数 h)。値 V[U][h](S) = max(確定の値, 各能力の各選択肢の値〔子の層の表を引く〕, ヘルプで 1 個振り直す値)。U の要素の少ない順に層をまるごと計算し、層はその層で起こるダイスの個数の範囲だけを持つ。能力の選択肢は「除く目・決めて足す目・その後の手順（R・A・C の列）」の形で、値は子の層の表に演算を掛けた表を 1 回引くだけ（パチュリーは R を k 回）。近似なし。編集は二面の期待値を U ごとに先に出し（どの U からでも 8 個で始められるよう層の範囲を広げる）、一面の確定の値を「評価点 + 二面の期待値」にして同じ計算
@@ -43,6 +43,7 @@ URL のパスは `/danmakugaho/`（リポジトリ名と綴りが違う。`web/v
 - `web/test/engine.test.ts`: 層 DP と素朴な全探索（`web/test/brute.ts`。ダイスの列をキーにした再帰）の一致（撮影 20 組・3 つのルール・ヘルプ 0〜2、編集 3 組）、能力の個数の増減の宣言、ヘルプ 1 枚 = アリス、閉じた式
 - `web/test/nim.test.ts`: ルール nim で元の Nim（diceMaxCount 10 でビルド、枝刈りを外した版）の値と相対誤差 1e-12 以内で一致（14 組。天子・神奈子・パチュリー・映姫・妖夢・妹紅を含む）。枝刈りありの値以上であること。作り方は `analysis/README.md`
 - `web/test/per.test.ts`: ルール nim2019 で `per.txt` を一字一句再現
+- `web/test/setup.test.ts`: 保存した設定の壊れた値・範囲外・人数の上限、計算の側の入力の検査。`web/test/trial.test.ts`: 試行が始めたときの設定のコピーで進むこと、途中で条件が変わった・計算に失敗したら止まること
 - 計測: `PERF=1 PERF_OUT=<出力の .md> npx vitest run test/perf.test.ts`（数は `analysis/README.md`）
 - 配信: `scripts/smoke.sh [ベースの URL]`（health が `{"ok":true}`、`/danmakugaho/` と、それが読む `/danmakugaho/assets/` の JS・CSS が 200、`/danmakugaho` が `/danmakugaho/` へ転送、OGP のメタと og.png が 1200×630）。ラボでは `scripts/smoke.sh http://10.44.135.10:3180`、公開後は `scripts/smoke.sh https://sagisawa.0am.jp`
 - 画面: 試行 → 「7 個振って始める」→「最善手で 1 手進める」を数回で、撮影成功か失敗が出ること
