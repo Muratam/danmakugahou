@@ -300,11 +300,12 @@ const rulesList: Rules[] = ["card", "nim", "nim2019"];
   font-size: 0.84rem;
   font-weight: 600;
 }
-/* 条件の文は折り返して全文を出す（スマホの幅で切れないように） */
+/* 条件の文は折り返して全文を出す（スマホの幅で切れないように）。対応するブラウザでは文節で折り返す（「12 以/下」を避ける。Safari は無視して文字ごと） */
 .pick-sub {
   font-size: 0.72rem;
   color: var(--ink-soft);
   overflow-wrap: anywhere;
+  word-break: auto-phrase;
 }
 .stepper {
   display: flex;
