@@ -1,9 +1,9 @@
 // 画面の設定の形と、保存した値（localStorage）の読み込み。Vue や Worker に依存しない（テストから使う）
-import { CHARA_BY_ID, LEVELS, type Rules } from "./engine/charas";
+import { CHARA_BY_ID, LEVELS } from "./engine/charas";
 import type { Setup } from "./engine/session";
 
+/** 画面のルールはカードの文面どおり（card）だけ。engine の nim・nim2019 はテストの照合用で、画面からは選ばない */
 export interface UiSetup {
-  rules: Rules;
   mode: "capture" | "edit";
   level: number;
   /** 狙わない被写体（そのレベルの残りから外す。既定は全員を狙う） */
@@ -21,13 +21,13 @@ export const MAX_HELD = 10;
 /** 画面で選べるヘルプの枚数の上限 */
 export const MAX_HELP_UI = 6;
 
-export const DEFAULT_SETUP: UiSetup = { rules: "card", mode: "capture", level: 6, excluded: [], held: ["chen", "alice", "sakuya"], help: 1 };
+export const DEFAULT_SETUP: UiSetup = { mode: "capture", level: 6, excluded: [], held: ["chen", "alice", "sakuya"], help: 1 };
 
 const isInt = (x: unknown, lo: number, hi: number): x is number => typeof x === "number" && Number.isInteger(x) && x >= lo && x <= hi;
 const ids = (x: unknown): string[] | null =>
   Array.isArray(x) ? [...new Set(x.filter((id): id is string => typeof id === "string" && CHARA_BY_ID.has(id)))] : null;
 
-/** 保存した文字列から設定を読む。壊れた値・範囲外の値は既定に戻す。held は上限を超えた分を捨てる */
+/** 保存した文字列から設定を読む。壊れた値・範囲外の値は既定に戻す。held は上限を超えた分を捨てる。以前の版で保存した rules は読まない */
 export function parseSetup(raw: string | null): UiSetup {
   const d = DEFAULT_SETUP;
   const fresh = (): UiSetup => ({ ...d, excluded: [...d.excluded], held: [...d.held] });
@@ -41,7 +41,6 @@ export function parseSetup(raw: string | null): UiSetup {
   if (!x || typeof x !== "object" || Array.isArray(x)) return fresh();
   const held = ids(x.held);
   return {
-    rules: x.rules === "nim" || x.rules === "nim2019" ? x.rules : "card",
     mode: x.mode === "edit" ? "edit" : "capture",
     level: isInt(x.level, LEVELS[0], LEVELS[LEVELS.length - 1]) ? x.level : d.level,
     excluded: ids(x.excluded) ?? [],

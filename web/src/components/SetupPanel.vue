@@ -1,8 +1,8 @@
 <script setup lang="ts">
-// 条件: 撮影か編集か・レベル・狙う被写体・能力を使えるキャラ・ヘルプ・ルール
+// 条件: 撮影か編集か・レベル・狙う被写体・能力を使えるキャラ・ヘルプ
 import { computed } from "vue";
-import { CHARAS, CHARA_BY_ID, LEVELS, type Rules } from "../engine/charas";
-import { MAX_HELD, MAX_HELP_UI, RULE_LABELS, levelTargets, progress, ui } from "../state";
+import { CHARAS, CHARA_BY_ID, LEVELS } from "../engine/charas";
+import { MAX_HELD, MAX_HELP_UI, levelTargets, progress, ui } from "../state";
 import CharaIcon from "./CharaIcon.vue";
 
 const byLevel = computed(() => LEVELS.map((lv) => ({ lv, charas: CHARAS.filter((c) => c.level === lv) })));
@@ -23,7 +23,6 @@ function setLevel(lv: number) {
   ui.excluded = [];
 }
 const heldCount = computed(() => ui.held.length);
-const rulesList: Rules[] = ["card", "nim", "nim2019"];
 </script>
 
 <template>
@@ -184,22 +183,6 @@ const rulesList: Rules[] = ["card", "nim", "nim2019"];
         選べるのは {{ MAX_HELD }} 人までです（計算の表が 2^人数 個に増え、時間とメモリが足りなくなるため）。
       </p>
     </div>
-
-    <label class="field">
-      <span class="field-label">ルールの解釈</span>
-      <select
-        v-model="ui.rules"
-        class="select"
-      >
-        <option
-          v-for="r in rulesList"
-          :key="r"
-          :value="r"
-        >
-          {{ RULE_LABELS[r] }}{{ r === "card" ? "（おすすめ）" : "（照合用）" }}
-        </option>
-      </select>
-    </label>
   </section>
 </template>
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// 説明: 使い方・計算のしかた・ルールの解釈・元のプログラムとの違い
+// 説明: 使い方・計算のしかた・ルールの解釈（カードの文面どおり）
 import { CHARAS, LEVELS } from "../engine/charas";
 import { RULE_NOTES } from "../rulesNotes";
 import CharaIcon from "./CharaIcon.vue";
@@ -28,12 +28,12 @@ import CharaIcon from "./CharaIcon.vue";
         <li>「まだ使っていない能力の組」と「残りのヘルプの枚数」ごとに、全部の多重集合の値を表にして、使える能力の少ない方から順に計算します（後ろ向きの動的計画法）。各状態の値は「ここで確定」「各能力の各選択肢」「ヘルプで 1 個振り直す」の最大です。近似はありません。</li>
         <li>ランダムに振るもの（振り直し・振って追加）は、1 個ずつ足す期待値の表を作って共有します。パチュリーのように多くのダイスを振り直す能力も、表を引く 1 回で済みます。振った後に選ぶもの（天子・神奈子）は「1 個を好きな目に変えたときの最大」の表で表します。</li>
         <li>編集は、二面の期待値を「残っている能力の組」ごとに先に出し、一面の確定の値を「一面の評価点 + 残りの能力での二面の期待値」にして同じ計算をします。</li>
-        <li>確かめたこと: 小さな全探索と一致（30 通り以上の組）。元の Nim（下）と同じルールにすると、Nim の値と 12 桁まで一致。2019 年の版のルールにすると per.txt と一字一句一致。</li>
+        <li>確認したこと: 小さな全探索と一致（30 通り以上の組）。</li>
       </ul>
 
       <h3>ルールの解釈</h3>
       <p>
-        既定はカードの文面どおりです。文面で決まらない所と、元の Nim のプログラムと違う所は次のとおり。条件の「ルールの解釈」で Nim と同じ扱いにもできます（照合用）。
+        ルールはカードの文面どおりです。文面だけでは決まらない所は、次のように読みました。
       </p>
       <div class="scroll">
         <table class="notes">
@@ -46,10 +46,7 @@ import CharaIcon from "./CharaIcon.vue";
                 カードの文面
               </th>
               <th scope="col">
-                この解析（既定）
-              </th>
-              <th scope="col">
-                元の Nim
+                この解析での読み方
               </th>
             </tr>
           </thead>
@@ -63,14 +60,10 @@ import CharaIcon from "./CharaIcon.vue";
               </th>
               <td>{{ n.card }}</td>
               <td>{{ n.ours }}</td>
-              <td>{{ n.nim }}</td>
             </tr>
           </tbody>
         </table>
       </div>
-      <p>
-        ほかに、元の Nim の BitDP（reduceGraphs）は能力が 7 人以下でも枝刈りで最善の道を落とすことがあり、少し小さい値を出します（例: 紫 ← リグル・アリス・咲夜・永琳・輝夜 で 62.61% → 正しくは 62.70%）。Nim はパチュリーを含むと時間とメモリが足りず計算できませんでしたが、ここでは 0.1 秒ほどです。
-      </p>
 
       <h3>キャラの一覧</h3>
       <div
@@ -125,7 +118,7 @@ import CharaIcon from "./CharaIcon.vue";
 }
 .notes {
   border-collapse: collapse;
-  min-width: 640px;
+  min-width: 520px;
   font-size: 0.8rem;
 }
 .notes th,
